@@ -25,6 +25,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/*.yml
           retention-days: 5
 
   build-windows:
@@ -40,7 +41,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/*.yml
           retention-days: 5
 
   build-linux:
@@ -57,7 +60,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/*.deb
+          path: |
+            dist/*.deb
+            dist/*.yml
           retention-days: 5
 
   release:
