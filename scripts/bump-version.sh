@@ -66,3 +66,11 @@ console.log('  updated scripts/create-pkg.sh');
 
 console.log('Done! $CURRENT_VERSION -> ' + newVersion + ' (build ' + newBundleVer + ')');
 "
+
+git add package.json Resources/Info.plist project.yml scripts/create-pkg.sh
+git commit -m "bump version to $NEW_VERSION [skip ci]"
+git tag "v$NEW_VERSION"
+
+echo ""
+echo "Tagged v$NEW_VERSION. To release, run:"
+echo "  git push origin main && git push origin v$NEW_VERSION"
