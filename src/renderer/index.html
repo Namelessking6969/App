@@ -407,6 +407,20 @@
 
     .workspace-item-close:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
 
+    .workspace-item-undock {
+      font-size: 9px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      line-height: 1;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+
+    .workspace-item:hover .workspace-item-undock,
+    .workspace-item.active .workspace-item-undock { opacity: 0.5; }
+
+    .workspace-item-undock:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
+
     .workspace-add {
       padding: 4px 7px;
       background: transparent;
@@ -875,7 +889,11 @@
           this.settings = { ...DEFAULT_SETTINGS };
         }
         this.setupEventListeners();
-        await this.addWorkspace('workspace 1');
+        const hash = window.location.hash;
+        const initialName = (hash && hash.startsWith('#ws='))
+          ? decodeURIComponent(hash.slice(4))
+          : 'workspace 1';
+        await this.addWorkspace(initialName);
       }
 
       setupEventListeners() {
@@ -1002,6 +1020,15 @@
         this.setActiveWorkspace(this.workspaces[(index - 1 + this.workspaces.length) % this.workspaces.length].id);
       }
 
+      async undockWorkspace(wsId) {
+        const ws = this.workspaces.find(w => w.id === wsId);
+        if (!ws) return;
+        await window.terminalAPI.openNewWindow(ws.name);
+        if (this.workspaces.length > 1) {
+          this.closeWorkspace(wsId);
+        }
+      }
+
       startWorkspaceRename(id, nameEl) {
         const ws = this.workspaces.find(w => w.id === id);
         if (!ws) return;
@@ -1043,6 +1070,15 @@
             this.startWorkspaceRename(ws.id, nameEl);
           };
 
+          const undockEl = document.createElement('span');
+          undockEl.className = 'workspace-item-undock';
+          undockEl.textContent = '↗';
+          undockEl.title = 'Undock to new window';
+          undockEl.onclick = (e) => {
+            e.stopPropagation();
+            this.undockWorkspace(ws.id);
+          };
+
           const closeEl = document.createElement('span');
           closeEl.className = 'workspace-item-close';
           closeEl.textContent = '✕';
@@ -1052,6 +1088,7 @@
           };
 
           el.appendChild(nameEl);
+          el.appendChild(undockEl);
           if (this.workspaces.length > 1) el.appendChild(closeEl);
           el.onclick = () => this.setActiveWorkspace(ws.id);
           bar.appendChild(el);

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, shell, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, webContents, ipcMain, Menu, shell, dialog, nativeTheme } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -95,10 +95,10 @@ const SHELL = process.platform === 'win32' ?
   (process.env.COMSPEC || 'cmd.exe') :
   (process.env.SHELL || '/bin/zsh');
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+function createWindow(opts = {}) {
+  const win = new BrowserWindow({
+    width: opts.width || 1200,
+    height: opts.height || 800,
     minWidth: 600,
     minHeight: 400,
     frame: false,
@@ -113,21 +113,38 @@ function createWindow() {
     icon: path.join(__dirname, '../build/icon.png')
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  const loadOptions = opts.workspaceName
+    ? { hash: `ws=${encodeURIComponent(opts.workspaceName)}` }
+    : {};
+  win.loadFile(path.join(__dirname, '../renderer/index.html'), loadOptions);
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-    terminals.forEach((term) => term.process.kill());
-    terminals.clear();
+  const wcId = win.webContents.id;
+  win.on('closed', () => {
+    if (win === mainWindow) mainWindow = null;
+    terminals.forEach((term, id) => {
+      if (term.webContentsId === wcId) {
+        term.process.kill();
+        terminals.delete(id);
+      }
+    });
   });
 
-  createMenu();
-
-  if (app.isPackaged) {
-    setTimeout(() => checkForUpdates(), 5000);
+  if (!mainWindow) {
+    mainWindow = win;
+    createMenu();
+    if (app.isPackaged) {
+      setTimeout(() => checkForUpdates(), 5000);
+    }
+    log.info('Main window created');
+  } else {
+    log.info('Detached window created');
   }
 
-  log.info('Main window created');
+  return win;
+}
+
+function getFocusedWindow() {
+  return BrowserWindow.getFocusedWindow() || mainWindow;
 }
 
 function createMenu() {
@@ -138,12 +155,12 @@ function createMenu() {
         {
           label: 'New Tab',
           accelerator: 'CmdOrCtrl+T',
-          click: () => mainWindow?.webContents.send('new-tab')
+          click: () => getFocusedWindow()?.webContents.send('new-tab')
         },
         {
           label: 'Close Tab',
           accelerator: 'CmdOrCtrl+W',
-          click: () => mainWindow?.webContents.send('close-tab')
+          click: () => getFocusedWindow()?.webContents.send('close-tab')
         },
         { type: 'separator' },
         {
@@ -168,7 +185,7 @@ function createMenu() {
         {
           label: 'Clear Terminal',
           accelerator: 'CmdOrCtrl+K',
-          click: () => mainWindow?.webContents.send('clear-terminal')
+          click: () => getFocusedWindow()?.webContents.send('clear-terminal')
         }
       ]
     },
@@ -178,40 +195,40 @@ function createMenu() {
         {
           label: 'Split Horizontally',
           accelerator: 'CmdOrCtrl+D',
-          click: () => mainWindow?.webContents.send('split-horizontal')
+          click: () => getFocusedWindow()?.webContents.send('split-horizontal')
         },
         {
           label: 'Split Vertically',
           accelerator: 'CmdOrCtrl+Shift+D',
-          click: () => mainWindow?.webContents.send('split-vertical')
+          click: () => getFocusedWindow()?.webContents.send('split-vertical')
         },
         { type: 'separator' },
         {
           label: 'Next Tab',
           accelerator: 'CmdOrCtrl+Shift+]',
-          click: () => mainWindow?.webContents.send('next-tab')
+          click: () => getFocusedWindow()?.webContents.send('next-tab')
         },
         {
           label: 'Previous Tab',
           accelerator: 'CmdOrCtrl+Shift+[',
-          click: () => mainWindow?.webContents.send('prev-tab')
+          click: () => getFocusedWindow()?.webContents.send('prev-tab')
         },
         { type: 'separator' },
         {
           label: 'Search',
           accelerator: 'CmdOrCtrl+F',
-          click: () => mainWindow?.webContents.send('show-search')
+          click: () => getFocusedWindow()?.webContents.send('show-search')
         },
         {
           label: 'Command Palette',
           accelerator: 'CmdOrCtrl+Shift+P',
-          click: () => mainWindow?.webContents.send('show-command-palette')
+          click: () => getFocusedWindow()?.webContents.send('show-command-palette')
         },
         { type: 'separator' },
         {
           label: 'Settings',
           accelerator: 'CmdOrCtrl+,',
-          click: () => mainWindow?.webContents.send('show-settings')
+          click: () => getFocusedWindow()?.webContents.send('show-settings')
         },
         { type: 'separator' },
         { role: 'reload' },
@@ -277,6 +294,7 @@ ipcMain.handle('create-terminal', async (event, options = {}) => {
   const id = ++terminalIdCounter;
   const resolvedShell = options.shell || (settings.shell && settings.shell.trim()) || SHELL;
   const cwd = options.cwd || os.homedir();
+  const senderWcId = event.sender.id;
 
   const env = { ...process.env };
   env.TERM = 'xterm-256color';
@@ -293,20 +311,22 @@ ipcMain.handle('create-terminal', async (event, options = {}) => {
     });
 
     ptyProcess.onData((data) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-data', { id, data });
+      const wc = webContents.fromId(senderWcId);
+      if (wc && !wc.isDestroyed()) {
+        wc.send('terminal-data', { id, data });
       }
     });
 
     ptyProcess.onExit(({ exitCode, signal }) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-exit', { id, exitCode, signal });
+      const wc = webContents.fromId(senderWcId);
+      if (wc && !wc.isDestroyed()) {
+        wc.send('terminal-exit', { id, exitCode, signal });
       }
       terminals.delete(id);
       log.info(`Terminal ${id} exited with code ${exitCode}`);
     });
 
-    terminals.set(id, { process: ptyProcess, shell: resolvedShell });
+    terminals.set(id, { process: ptyProcess, shell: resolvedShell, webContentsId: senderWcId });
     log.info(`Created terminal ${id} with shell ${resolvedShell}`);
 
     return { success: true, id };
@@ -334,19 +354,22 @@ ipcMain.on('terminal-kill', (event, { id }) => {
   }
 });
 
-ipcMain.on('window-minimize', () => mainWindow?.minimize());
+ipcMain.on('window-minimize', (event) => BrowserWindow.fromWebContents(event.sender)?.minimize());
 
-ipcMain.on('window-maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
+ipcMain.on('window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win?.isMaximized()) win.unmaximize();
+  else win?.maximize();
 });
 
-ipcMain.on('window-close', () => mainWindow?.close());
+ipcMain.on('window-close', (event) => BrowserWindow.fromWebContents(event.sender)?.close());
 
-ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() || false);
+ipcMain.handle('window-is-maximized', (event) => BrowserWindow.fromWebContents(event.sender)?.isMaximized() || false);
+
+ipcMain.handle('create-window', (event, { workspaceName } = {}) => {
+  createWindow({ workspaceName, width: 900, height: 700 });
+  return {};
+});
 
 ipcMain.handle('get-shell-path', () => SHELL);
 

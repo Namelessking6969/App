@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('terminalAPI', {
   onShowCommandPalette: (callback) => ipcRenderer.on('show-command-palette', callback),
   onShowSettings: (callback) => ipcRenderer.on('show-settings', callback),
 
+  openNewWindow: (workspaceName) => ipcRenderer.invoke('create-window', { workspaceName }),
+
   // Window controls
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
