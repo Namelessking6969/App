@@ -693,107 +693,34 @@
     .titlebar-btn.win.close:hover { background: #e81123; color: #fff; opacity: 1; }
     .titlebar-win-right .settings-trigger { margin-right: 2px; }
 
-    /* History overlay */
-    .history-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: flex-start;
-      padding-top: 80px;
-      z-index: 1000;
-    }
-    .history-overlay.visible { display: flex; }
-    .history-panel {
-      width: 620px;
-      background: var(--bg-secondary);
-      border-radius: 8px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      max-height: 60vh;
-    }
-    .history-header {
+    /* Linux-style titlebar */
+    .titlebar-linux { padding-left: 0; }
+    .titlebar-linux-right {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg);
-      flex-shrink: 0;
+      height: 100%;
+      -webkit-app-region: no-drag;
+      padding-right: 8px;
+      gap: 4px;
     }
-    .history-search {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--fg);
-      font-size: 13px;
-      outline: none;
-    }
-    .history-search::placeholder { color: var(--fg-dim); }
-    .history-close {
-      background: transparent;
-      border: none;
+    .titlebar-btn.lnx {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
       color: var(--fg-dim);
-      cursor: pointer;
-      font-size: 14px;
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-    .history-close:hover { color: var(--fg); background: rgba(255,255,255,0.06); }
-    .history-list { overflow-y: auto; flex: 1; }
-    .history-item {
-      display: flex;
-      align-items: center;
-      padding: 9px 14px;
-      cursor: pointer;
-      gap: 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-      transition: background 0.1s;
-    }
-    .history-item:hover { background: var(--selection); }
-    .history-item-cmd {
-      flex: 1;
-      font-size: 13px;
-      font-family: monospace;
-      color: var(--fg);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .history-item-time { font-size: 10px; color: var(--fg-dim); flex-shrink: 0; }
-    .history-item-del {
-      background: transparent;
-      border: none;
-      color: var(--fg-dim);
-      cursor: pointer;
       font-size: 11px;
-      padding: 2px 5px;
-      border-radius: 3px;
-      opacity: 0;
-      flex-shrink: 0;
-      transition: opacity 0.1s;
-    }
-    .history-item:hover .history-item-del { opacity: 1; }
-    .history-item-del:hover { color: var(--red); background: rgba(255,107,107,0.1); opacity: 1 !important; }
-    .history-footer {
-      padding: 7px 14px;
-      border-top: 1px solid var(--border);
-      font-size: 11px;
-      color: var(--fg-dim);
-      flex-shrink: 0;
-    }
-    .history-empty {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px;
-      color: var(--fg-dim);
-      font-size: 13px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
     }
+    .titlebar-btn.lnx:hover { background: rgba(255,255,255,0.18); color: var(--fg); opacity: 1; }
+    .titlebar-btn.lnx.close:hover { background: var(--btn-close, #FF5F57); color: #fff; opacity: 1; }
+    .titlebar-linux-right .settings-trigger { margin-right: 4px; }
+
   </style>
 </head>
 <body>
@@ -852,21 +779,6 @@
     </div>
   </div>
 
-  <!-- History Overlay -->
-  <div class="history-overlay" id="historyOverlay">
-    <div class="history-panel">
-      <div class="history-header">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:0.5">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <input type="text" class="history-search" id="historySearch" placeholder="Search command history...">
-        <button class="history-close" onclick="terminalManager.hideHistory()">✕</button>
-      </div>
-      <div class="history-list" id="historyList"></div>
-      <div class="history-footer">Click to paste into terminal &nbsp;·&nbsp; ✕ to delete entry</div>
-    </div>
-  </div>
-
   <!-- Settings Modal -->
   <div class="settings-overlay" id="settingsOverlay">
     <div class="settings-panel">
@@ -897,6 +809,7 @@
               <option value="auto">Auto (detect OS)</option>
               <option value="macos">macOS</option>
               <option value="windows">Windows</option>
+              <option value="linux">Linux</option>
             </select>
           </div>
 
@@ -1114,8 +1027,6 @@
         this.terminals = new Map();
         this.settings = { ...DEFAULT_SETTINGS };
         this.searchTerm = '';
-        this.commandHistory = [];
-        this.historyLineBuffers = new Map();
         this.platform = 'linux';
 
         this.commands = [
@@ -1130,7 +1041,6 @@
           { id: 'prevWorkspace',   title: 'Previous Workspace',   shortcut: '⌘⇧,',  action: () => this.prevWorkspace() },
           { id: 'clear',           title: 'Clear Terminal',       shortcut: '⌘K',   action: () => this.clearActiveTerminal() },
           { id: 'search',          title: 'Search...',            shortcut: '⌘F',   action: () => this.showSearch() },
-          { id: 'history',         title: 'Command History',      shortcut: '⌘⇧H',  action: () => this.showHistory() },
           { id: 'settings',        title: 'Settings',             shortcut: '⌘,',   action: () => this.showSettings() },
         ];
 
@@ -1160,7 +1070,6 @@
           this.settings = { ...DEFAULT_SETTINGS };
         }
         try { this.platform = await window.terminalAPI.getPlatform(); } catch {}
-        try { this.commandHistory = await window.terminalAPI.getHistory(); } catch {}
         this.applyTheme(this.settings.theme || 'vibe');
         this.renderTitlebar();
         this.setupEventListeners();
@@ -1182,7 +1091,6 @@
         window.terminalAPI.onShowSearch(() => this.showSearch());
         window.terminalAPI.onShowCommandPalette(() => this.showCommandPalette());
         window.terminalAPI.onShowSettings(() => this.showSettings());
-        window.terminalAPI.onShowHistory(() => this.showHistory());
 
         window.terminalAPI.onData(({ id, data }) => {
           const term = this.terminals.get(id);
@@ -1228,10 +1136,6 @@
 
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape') this.hideOverlays();
-          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-            e.preventDefault();
-            this.showHistory();
-          }
         });
       }
 
@@ -1470,7 +1374,6 @@
 
           terminal.onData((data) => {
             window.terminalAPI.write(result.id, data);
-            this.trackHistory(result.id, data);
           });
 
           terminal.onResize(({ cols, rows }) => {
@@ -1616,7 +1519,6 @@
         document.getElementById('commandPalette').classList.remove('visible');
         document.getElementById('searchOverlay').classList.remove('visible');
         document.getElementById('settingsOverlay').classList.remove('visible');
-        document.getElementById('historyOverlay').classList.remove('visible');
       }
 
       showSettings() {
@@ -1738,6 +1640,7 @@
       renderTitlebar() {
         const style = this.settings.titlebarStyle || 'auto';
         const isWin = style === 'windows' || (style === 'auto' && this.platform === 'win32');
+        const isLinux = style === 'linux' || (style === 'auto' && this.platform === 'linux');
         const titlebar = document.getElementById('titlebar');
 
         const settingsIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1753,6 +1656,17 @@
               <button class="titlebar-btn win minimize" id="tbMin" title="Minimize">&#8211;</button>
               <button class="titlebar-btn win maximize" id="tbMax" title="Maximize">&#9633;</button>
               <button class="titlebar-btn win close" id="tbClose" title="Close">&#10005;</button>
+            </div>
+          `;
+        } else if (isLinux) {
+          titlebar.className = 'titlebar titlebar-linux';
+          titlebar.innerHTML = `
+            <div class="titlebar-app-name">VibeTerminal</div>
+            <div class="titlebar-linux-right">
+              <button class="settings-trigger" id="settingsBtn" title="Settings (Ctrl+,)">${settingsIconSvg}</button>
+              <button class="titlebar-btn lnx minimize" id="tbMin" title="Minimize">&#8211;</button>
+              <button class="titlebar-btn lnx maximize" id="tbMax" title="Maximize">&#9633;</button>
+              <button class="titlebar-btn lnx close" id="tbClose" title="Close">&#10005;</button>
             </div>
           `;
         } else {
@@ -1774,123 +1688,6 @@
         document.getElementById('tbMin').onclick = () => window.terminalAPI.minimize();
         document.getElementById('tbMax').onclick = () => window.terminalAPI.maximize();
         document.getElementById('tbClose').onclick = () => window.terminalAPI.close();
-      }
-
-      // ─── Command history ─────────────────────────────────────────────────────
-
-      trackHistory(termId, data) {
-        if (!this.historyLineBuffers.has(termId)) this.historyLineBuffers.set(termId, '');
-        let buf = this.historyLineBuffers.get(termId);
-
-        for (let i = 0; i < data.length; i++) {
-          const ch = data[i];
-          const code = data.charCodeAt(i);
-          if (ch === '\r') {
-            const cmd = buf.trim();
-            if (cmd && (this.commandHistory.length === 0 ||
-                this.commandHistory[this.commandHistory.length - 1].command !== cmd)) {
-              this.commandHistory.push({ command: cmd, timestamp: Date.now() });
-              if (this.commandHistory.length > 1000) this.commandHistory.shift();
-              window.terminalAPI.saveHistory(this.commandHistory);
-            }
-            buf = '';
-          } else if (ch === '\x7f') {
-            buf = buf.slice(0, -1);
-          } else if (ch === '\x1b') {
-            // escape sequence — skip it and reset the line buffer since
-            // arrow keys may recall shell history we can't see
-            i++;
-            while (i < data.length) {
-              const ec = data[i];
-              if ((ec >= 'A' && ec <= 'Z') || (ec >= 'a' && ec <= 'z') || ec === '~') break;
-              i++;
-            }
-            buf = '';
-          } else if (ch === '\x03' || ch === '\x04') {
-            buf = '';
-          } else if (code >= 32 && code < 127) {
-            buf += ch;
-          }
-        }
-
-        this.historyLineBuffers.set(termId, buf);
-      }
-
-      showHistory() {
-        const overlay = document.getElementById('historyOverlay');
-        const search = document.getElementById('historySearch');
-        overlay.classList.add('visible');
-        search.value = '';
-        this.renderHistory('');
-        search.oninput = () => this.renderHistory(search.value);
-        search.onkeydown = (e) => { if (e.key === 'Escape') this.hideHistory(); e.stopPropagation(); };
-        search.focus();
-      }
-
-      hideHistory() {
-        document.getElementById('historyOverlay').classList.remove('visible');
-      }
-
-      renderHistory(filter) {
-        const list = document.getElementById('historyList');
-        const lower = filter.toLowerCase();
-        const filtered = this.commandHistory
-          .filter(h => h.command.toLowerCase().includes(lower))
-          .slice().reverse();
-
-        if (filtered.length === 0) {
-          list.innerHTML = '<div class="history-empty">' +
-            (this.commandHistory.length === 0 ? 'No history yet — start typing commands!' : 'No matching commands') +
-            '</div>';
-          return;
-        }
-
-        list.innerHTML = '';
-        filtered.forEach(h => {
-          const item = document.createElement('div');
-          item.className = 'history-item';
-
-          const cmd = document.createElement('span');
-          cmd.className = 'history-item-cmd';
-          cmd.textContent = h.command;
-
-          const time = document.createElement('span');
-          time.className = 'history-item-time';
-          time.textContent = this.formatHistoryTime(h.timestamp);
-
-          const del = document.createElement('button');
-          del.className = 'history-item-del';
-          del.textContent = '✕';
-          del.title = 'Remove from history';
-          del.onclick = (e) => {
-            e.stopPropagation();
-            const idx = this.commandHistory.indexOf(h);
-            if (idx !== -1) this.commandHistory.splice(idx, 1);
-            window.terminalAPI.saveHistory(this.commandHistory);
-            this.renderHistory(filter);
-          };
-
-          item.appendChild(cmd);
-          item.appendChild(time);
-          item.appendChild(del);
-          item.onclick = () => { this.pasteToActiveTerminal(h.command); this.hideHistory(); };
-          list.appendChild(item);
-        });
-      }
-
-      formatHistoryTime(ts) {
-        const diff = Date.now() - ts;
-        if (diff < 60000) return 'just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        return new Date(ts).toLocaleDateString();
-      }
-
-      pasteToActiveTerminal(text) {
-        const tab = this.tabs.find(t => t.id === this.activeTabId);
-        if (tab && tab.terminals[tab.activeTerminalIndex]) {
-          window.terminalAPI.write(tab.terminals[tab.activeTerminalIndex].id, text);
-        }
       }
 
       checkForUpdates() {
