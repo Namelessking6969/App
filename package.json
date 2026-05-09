@@ -1,6 +1,6 @@
 {
   "name": "vibeterminal",
-  "version": "2.1.12",
+  "version": "2.1.13",
   "description": "A beautiful, feature-rich terminal emulator",
   "homepage": "https://github.com/vibeterminal/vibeterminal",
   "main": "src/main/main.js",
