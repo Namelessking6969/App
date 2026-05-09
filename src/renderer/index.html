@@ -1433,6 +1433,37 @@
           terminal.open(wrapper);
           fitAddon.fit();
 
+          // Copy: Ctrl+Shift+C  |  Paste: Ctrl+Shift+V or Ctrl+V
+          terminal.attachCustomKeyEventHandler((e) => {
+            if (e.type !== 'keydown') return true;
+            const mod = e.ctrlKey || e.metaKey;
+            if (mod && e.shiftKey && e.key === 'C') {
+              const sel = terminal.getSelection();
+              if (sel) navigator.clipboard.writeText(sel).catch(() => {});
+              return false;
+            }
+            if (mod && (e.key === 'v' || (e.shiftKey && e.key === 'V'))) {
+              navigator.clipboard.readText().then(text => {
+                if (text) terminal.paste(text);
+              }).catch(() => {});
+              return false;
+            }
+            return true;
+          });
+
+          // Right-click pastes from clipboard
+          wrapper.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const sel = terminal.getSelection();
+            if (sel) {
+              navigator.clipboard.writeText(sel).catch(() => {});
+            } else {
+              navigator.clipboard.readText().then(text => {
+                if (text) terminal.paste(text);
+              }).catch(() => {});
+            }
+          });
+
           const terminalData = { id: result.id, terminal, fitAddon, searchAddon, container };
           this.terminals.set(result.id, terminalData);
           tab.terminals.push(terminalData);
