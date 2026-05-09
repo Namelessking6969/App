@@ -3,6 +3,7 @@ import AppKit
 
 struct MainWindowView: View {
     @StateObject private var terminalManager = TerminalManager()
+    @ObservedObject private var settings = Settings.shared
     @State private var showCommandPalette = false
     @State private var showSearch = false
     
@@ -65,7 +66,8 @@ struct MainWindowView: View {
 
 struct EmptyStateView: View {
     let onNewTab: () -> Void
-    
+    @ObservedObject private var settings = Settings.shared
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "terminal.fill")

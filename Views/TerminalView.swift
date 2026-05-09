@@ -38,6 +38,7 @@ struct SplitPaneView: View {
 
 struct TerminalView: View {
     @ObservedObject var session: TerminalSession
+    @ObservedObject private var settings = Settings.shared
     @State private var showCursor = true
     @State private var selection: NSRange?
     @State private var mouseLocation: CGPoint = .zero

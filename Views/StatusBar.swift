@@ -2,7 +2,8 @@ import SwiftUI
 
 struct StatusBarView: View {
     @ObservedObject var session: TerminalSession
-    
+    @ObservedObject private var settings = Settings.shared
+
     var body: some View {
         HStack(spacing: 16) {
             HStack(spacing: 8) {

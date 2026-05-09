@@ -32,7 +32,7 @@ struct TerminalTheme: Identifiable, Codable, Hashable {
     }
     
     static let neonNight = TerminalTheme(
-        id: UUID(),
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
         name: "Neon Night",
         background: "#0D0D0D",
         foreground: "#E0E0E0",
@@ -58,7 +58,7 @@ struct TerminalTheme: Identifiable, Codable, Hashable {
     )
     
     static let arcticIce = TerminalTheme(
-        id: UUID(),
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
         name: "Arctic Ice",
         background: "#0A1628",
         foreground: "#E8F4F8",
@@ -84,7 +84,7 @@ struct TerminalTheme: Identifiable, Codable, Hashable {
     )
     
     static let sunsetGlow = TerminalTheme(
-        id: UUID(),
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
         name: "Sunset Glow",
         background: "#1A0A0A",
         foreground: "#FFD4A3",
@@ -110,7 +110,7 @@ struct TerminalTheme: Identifiable, Codable, Hashable {
     )
     
     static let dracula = TerminalTheme(
-        id: UUID(),
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
         name: "Dracula",
         background: "#282A36",
         foreground: "#F8F8F2",

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TabBarView: View {
     @ObservedObject var terminalManager: TerminalManager
+    @ObservedObject private var settings = Settings.shared
     @State private var hoveredTabIndex: Int?
     
     var body: some View {
@@ -41,6 +42,7 @@ struct TabBarView: View {
 
 struct TabItemView: View {
     @ObservedObject var tab: TerminalTab
+    @ObservedObject private var settings = Settings.shared
     let isActive: Bool
     let isHovered: Bool
     
