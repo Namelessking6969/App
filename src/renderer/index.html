@@ -1388,6 +1388,7 @@
                 const n = el.querySelector('.workspace-item-name');
                 if (n) this.startWorkspaceRename(ws.id, n);
               }},
+              { label: 'Undock to New Window', action: () => this.undockWorkspace(ws.id) },
               'separator',
               { label: 'New Workspace', action: () => this.addWorkspace() },
             ];
