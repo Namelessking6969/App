@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('terminalAPI', {
 
   getShellPath: () => ipcRenderer.invoke('get-shell-path'),
   getCwd: () => ipcRenderer.invoke('get-cwd'),
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+  getHistory: () => ipcRenderer.invoke('get-history'),
+  saveHistory: (history) => ipcRenderer.invoke('save-history', history),
+  onShowHistory: (callback) => ipcRenderer.on('show-history', callback),
 
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),

@@ -20,7 +20,8 @@ const DEFAULT_SETTINGS = {
   cursorBlink: true,
   scrollback: 10000,
   shell: '',
-  theme: 'vibe'
+  theme: 'vibe',
+  titlebarStyle: 'auto'
 };
 
 function getSettingsPath() {
@@ -95,6 +96,10 @@ function checkForUpdates() {
 const SHELL = process.platform === 'win32' ?
   (process.env.COMSPEC || 'cmd.exe') :
   (process.env.SHELL || '/bin/zsh');
+
+function getHistoryPath() {
+  return path.join(app.getPath('userData'), 'command-history.json');
+}
 
 function createWindow(opts = {}) {
   const win = new BrowserWindow({
@@ -219,6 +224,11 @@ function createMenu() {
           label: 'Search',
           accelerator: 'CmdOrCtrl+F',
           click: () => getFocusedWindow()?.webContents.send('show-search')
+        },
+        {
+          label: 'Command History',
+          accelerator: 'CmdOrCtrl+Shift+H',
+          click: () => getFocusedWindow()?.webContents.send('show-history')
         },
         {
           label: 'Command Palette',
@@ -375,6 +385,27 @@ ipcMain.handle('create-window', (event, { workspaceName } = {}) => {
 ipcMain.handle('get-shell-path', () => SHELL);
 
 ipcMain.handle('get-cwd', () => os.homedir());
+
+ipcMain.handle('get-platform', () => process.platform);
+
+ipcMain.handle('get-history', () => {
+  try {
+    const data = fs.readFileSync(getHistoryPath(), 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+});
+
+ipcMain.handle('save-history', (event, history) => {
+  try {
+    fs.writeFileSync(getHistoryPath(), JSON.stringify(history));
+    return true;
+  } catch (e) {
+    log.error('Failed to save history:', e);
+    return false;
+  }
+});
 
 // App events
 app.whenReady().then(() => {
