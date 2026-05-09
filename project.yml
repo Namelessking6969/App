@@ -44,8 +44,8 @@ targets:
         CFBundleName: VibeTerminal
         CFBundleDisplayName: VibeTerminal
         CFBundleIdentifier: com.vibeterminal.app
-        CFBundleVersion: "13"
-        CFBundleShortVersionString: "2.1.11"
+        CFBundleVersion: "14"
+        CFBundleShortVersionString: "2.1.12"
         CFBundlePackageType: APPL
         CFBundleExecutable: VibeTerminal
         LSMinimumSystemVersion: "13.0"
