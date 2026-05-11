@@ -1986,7 +1986,13 @@
           }
           if (mod && (e.key === 'v' || (e.shiftKey && e.key === 'V'))) {
             navigator.clipboard.readText().then(text => {
-              if (text) { this.addToPasteHistory(text); this._pasteToActive(text); }
+              if (!text) return;
+              this.addToPasteHistory(text);
+              if (this.broadcastInput) {
+                const tab = this.tabs.find(t => t.id === this.activeTabId);
+                if (tab) { tab.terminals.forEach(t => t.terminal.paste(text)); return; }
+              }
+              terminal.paste(text);
             }).catch(() => {});
             return false;
           }
@@ -2001,7 +2007,13 @@
             navigator.clipboard.writeText(sel).catch(() => {});
           } else {
             navigator.clipboard.readText().then(text => {
-              if (text) { this.addToPasteHistory(text); this._pasteToActive(text); }
+              if (!text) return;
+              this.addToPasteHistory(text);
+              if (this.broadcastInput) {
+                const tab = this.tabs.find(t => t.id === this.activeTabId);
+                if (tab) { tab.terminals.forEach(t => t.terminal.paste(text)); return; }
+              }
+              terminal.paste(text);
             }).catch(() => {});
           }
         });
@@ -2240,7 +2252,7 @@
                 const t = document.querySelector('.tab.active .tab-title');
                 if (t) this.startTabRename(tab.id, t);
               }},
-              { label: 'Set Color', action: () => this.showTabColorPicker(tab.id, tabEl) },
+              { label: 'Set Color', action: () => this.showTabColorPicker(tab.id) },
               'separator',
               { label: '⊟  Split Horizontally', action: () => this.splitActivePane('horizontal') },
               { label: '⊞  Split Vertically',   action: () => this.splitActivePane('vertical') },
@@ -2811,7 +2823,7 @@
 
       // ─── Tab Colors ──────────────────────────────────────────────────────────
 
-      showTabColorPicker(tabId, anchorEl) {
+      showTabColorPicker(tabId) {
         document.getElementById('contextMenu')?.remove();
         const existing = document.getElementById('colorPickerPopup');
         if (existing) { existing.remove(); return; }
@@ -2839,7 +2851,9 @@
 
         document.body.appendChild(picker);
 
-        const rect = anchorEl.getBoundingClientRect();
+        // Find the live tab element by data attribute (stale ref may be detached)
+        const liveTabEl = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+        const rect = liveTabEl ? liveTabEl.getBoundingClientRect() : { bottom: 80, left: 8 };
         picker.style.top = (rect.bottom + 4) + 'px';
         const pw = picker.offsetWidth;
         picker.style.left = Math.min(rect.left, window.innerWidth - pw - 8) + 'px';
