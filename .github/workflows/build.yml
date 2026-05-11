@@ -79,14 +79,13 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Delete existing release if present
-        run: gh release delete ${{ steps.pkg.outputs.version }} --yes || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.pkg.outputs.version }}
-          files: artifacts/**/*
-          draft: false
+      - name: Publish release
+        run: |
+          TAG="${{ steps.pkg.outputs.version }}"
+          git tag -f "$TAG"
+          git push origin -f "$TAG"
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" --title "VibeTerminal $TAG" --latest --notes ""
+          find artifacts -type f -print0 | xargs -0 gh release upload "$TAG" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
