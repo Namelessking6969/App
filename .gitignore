@@ -3,4 +3,4 @@ dpm-debug.log
 *.log
 .DS_Store
 dist/
-build/
+!build/vibeterminal.png
