@@ -1,4 +1,4 @@
-const { app, BrowserWindow, webContents, ipcMain, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, webContents, ipcMain, Menu, shell, dialog, globalShortcut } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -27,7 +27,10 @@ const DEFAULT_SETTINGS = {
   scrollback: 10000,
   shell: '',
   theme: 'vibe',
-  titlebarStyle: 'auto'
+  titlebarStyle: 'auto',
+  opacity: 1.0,
+  hotkeyEnabled: false,
+  hotkey: 'CommandOrControl+`',
 };
 
 function getSettingsPath() {
@@ -50,6 +53,33 @@ function saveSettingsToDisk(settings) {
   } catch (e) {
     log.error('Failed to save settings:', e);
     return false;
+  }
+}
+
+// Global hotkey (hotkey window)
+let registeredHotkey = null;
+
+function registerHotkey(accelerator) {
+  if (registeredHotkey) {
+    try { globalShortcut.unregister(registeredHotkey); } catch {}
+    registeredHotkey = null;
+  }
+  if (!accelerator) return;
+  try {
+    const ok = globalShortcut.register(accelerator, () => {
+      const win = mainWindow;
+      if (!win) return;
+      if (win.isVisible() && win.isFocused()) {
+        win.hide();
+      } else {
+        win.show();
+        win.focus();
+      }
+    });
+    if (ok) registeredHotkey = accelerator;
+    else log.warn('Hotkey registration failed (already in use?):', accelerator);
+  } catch (e) {
+    log.error('Failed to register hotkey:', e);
   }
 }
 
@@ -389,6 +419,23 @@ ipcMain.handle('get-platform', () => process.platform);
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+ipcMain.on('window-set-opacity', (event, value) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.setOpacity(Math.max(0.1, Math.min(1, value)));
+});
+
+ipcMain.handle('set-hotkey', (event, { enabled, hotkey }) => {
+  if (enabled && hotkey) {
+    registerHotkey(hotkey);
+  } else {
+    if (registeredHotkey) {
+      try { globalShortcut.unregister(registeredHotkey); } catch {}
+      registeredHotkey = null;
+    }
+  }
+  return { success: true };
+});
+
 ipcMain.on('open-external', (event, url) => {
   const allowed = /^https:\/\/github\.com\//;
   if (allowed.test(url)) shell.openExternal(url);
@@ -450,6 +497,11 @@ app.whenReady().then(() => {
   log.info('App ready, creating window');
   createWindow();
 
+  const settings = loadSettings();
+  if (settings.hotkeyEnabled && settings.hotkey) {
+    registerHotkey(settings.hotkey);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -464,6 +516,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   terminals.forEach((term) => term.process.kill());
   terminals.clear();
+  globalShortcut.unregisterAll();
   log.info('App quitting');
 });
 

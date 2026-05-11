@@ -67,6 +67,9 @@ contextBridge.exposeInMainWorld('terminalAPI', {
     return () => ipcRenderer.removeListener('update-status', handler);
   },
 
+  setOpacity: (value) => ipcRenderer.send('window-set-opacity', value),
+  setHotkey: (opts) => ipcRenderer.invoke('set-hotkey', opts),
+
   openExternal: (url) => ipcRenderer.send('open-external', url),
   getAppVersion: () => ipcRenderer.invoke('get-app-version')
 });

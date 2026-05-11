@@ -978,6 +978,177 @@
       color: var(--fg-dim);
     }
 
+    /* Tab Activity Indicator */
+    .tab { position: relative; }
+    .tab.activity .tab-icon {
+      animation: tab-pulse 1.2s ease-in-out infinite;
+      color: var(--accent) !important;
+    }
+    @keyframes tab-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .tab.activity::after {
+      content: '';
+      position: absolute;
+      top: 7px;
+      right: 4px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* Broadcast Input */
+    .broadcast-btn {
+      padding: 4px 7px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg-dim);
+      cursor: pointer;
+      font-size: 11px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .broadcast-btn:hover { color: var(--fg); border-color: var(--accent-dim); background: rgba(255,255,255,0.05); }
+    .broadcast-btn.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+    .broadcast-btn.active:hover { opacity: 0.88; }
+
+    /* Paste History */
+    .paste-history-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 80px;
+      z-index: 1000;
+    }
+    .paste-history-overlay.visible { display: flex; }
+    .paste-history-panel {
+      width: 520px;
+      max-height: 420px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .paste-history-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .paste-history-list { overflow-y: auto; flex: 1; }
+    .paste-history-item {
+      padding: 9px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--fg);
+      white-space: pre;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.1s;
+      display: block;
+    }
+    .paste-history-item:hover, .paste-history-item.selected { background: var(--selection); }
+    .paste-history-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--fg-dim);
+      font-size: 13px;
+    }
+    .paste-history-clear {
+      background: transparent;
+      border: none;
+      color: var(--fg-dim);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .paste-history-clear:hover { color: var(--red); background: rgba(255,80,80,0.1); }
+
+    /* Tab Color Picker */
+    .color-picker-popup {
+      position: fixed;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 10001;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      align-items: center;
+    }
+    .color-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.12s, border-color 0.12s;
+      flex-shrink: 0;
+    }
+    .color-swatch:hover { transform: scale(1.25); border-color: var(--fg); }
+    .color-swatch.no-color {
+      background: var(--bg) !important;
+      border: 2px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--fg-dim);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 44px;
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 10002;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Opacity slider in settings */
+    .settings-input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
@@ -1114,6 +1285,12 @@
             <input type="number" class="settings-input" id="settingsScrollback" min="100" max="100000" value="10000">
             <span style="font-size:12px;color:var(--fg-dim)">lines</span>
           </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Opacity</span>
+            <input type="range" class="settings-input" id="settingsOpacity" min="0.2" max="1" step="0.05" value="1" oninput="terminalManager.onOpacityPreview(this.value)">
+            <span style="font-size:12px;color:var(--fg-dim);width:32px;text-align:right" id="opacityLabel">100%</span>
+          </div>
         </div>
 
         <!-- Shell -->
@@ -1124,6 +1301,20 @@
             <input type="text" class="settings-input" id="settingsShell" placeholder="Leave empty for default">
           </div>
           <div class="settings-hint">e.g. /bin/zsh &nbsp;·&nbsp; Empty = use system default</div>
+        </div>
+
+        <!-- Hotkey Window -->
+        <div class="settings-section">
+          <div class="settings-section-title">Hotkey Window</div>
+          <div class="settings-checkbox-row">
+            <input type="checkbox" id="settingsHotkeyEnabled" onchange="terminalManager.onHotkeyEnabledChange()">
+            <label class="settings-checkbox-label" for="settingsHotkeyEnabled">Enable global hotkey to show/hide window</label>
+          </div>
+          <div class="settings-row" id="hotkeyRow" style="display:none">
+            <span class="settings-label">Shortcut</span>
+            <input type="text" class="settings-input" id="settingsHotkey" placeholder="e.g. CommandOrControl+`">
+          </div>
+          <div class="settings-hint" id="hotkeyHint" style="display:none">Summons the terminal from any app. Requires restart to take effect if changed.</div>
         </div>
 
         <!-- Updates -->
@@ -1167,6 +1358,20 @@
         <button class="settings-btn-cancel" onclick="terminalManager.hideSettings()">Cancel</button>
         <button class="settings-btn-save" onclick="terminalManager.saveSettings()">Save</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Paste History Modal -->
+  <div class="paste-history-overlay" id="pasteHistoryOverlay">
+    <div class="paste-history-panel">
+      <div class="paste-history-header">
+        <span>Paste History</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;opacity:0.5">Click to paste · Ctrl+Shift+H</span>
+          <button class="paste-history-clear" onclick="terminalManager.clearPasteHistory()">Clear</button>
+        </div>
+      </div>
+      <div class="paste-history-list" id="pasteHistoryList"></div>
     </div>
   </div>
 
@@ -1301,8 +1506,13 @@
       scrollback: 10000,
       shell: '',
       theme: 'vibe',
-      titlebarStyle: 'auto'
+      titlebarStyle: 'auto',
+      opacity: 1.0,
+      hotkeyEnabled: false,
+      hotkey: 'CommandOrControl+`',
     };
+
+    const TAB_COLORS = [null, '#FF6B6B', '#FACC15', '#4ADE80', '#60A5FA', '#C084FC', '#22D3EE', '#FB923C', '#F97316'];
 
     class TerminalManager {
       constructor() {
@@ -1315,6 +1525,8 @@
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this._nextId = 0;
+        this.pasteHistory = [];
+        this.broadcastInput = false;
 
         this.commands = [
           { id: 'newTab',          title: 'New Tab',              shortcut: '⌘T',   action: () => this.addTab() },
@@ -1329,6 +1541,8 @@
           { id: 'clear',           title: 'Clear Terminal',       shortcut: '⌘K',   action: () => this.clearActiveTerminal() },
           { id: 'search',          title: 'Search...',            shortcut: '⌘F',   action: () => this.showSearch() },
           { id: 'settings',        title: 'Settings',             shortcut: '⌘,',   action: () => this.showSettings() },
+          { id: 'pasteHistory',    title: 'Paste History',        shortcut: '⌃⇧H',  action: () => this.showPasteHistory() },
+          { id: 'broadcast',       title: 'Toggle Broadcast Input', shortcut: '⌃⇧B', action: () => this.toggleBroadcast() },
         ];
 
         this.init();
@@ -1358,6 +1572,9 @@
         }
         try { this.platform = await window.terminalAPI.getPlatform(); } catch {}
         this.applyTheme(this.settings.theme || 'vibe');
+        if (this.settings.opacity != null && this.settings.opacity < 1) {
+          window.terminalAPI.setOpacity(this.settings.opacity);
+        }
         this.renderTitlebar();
         this.setupEventListeners();
         const hash = window.location.hash;
@@ -1381,7 +1598,16 @@
 
         window.terminalAPI.onData(({ id, data }) => {
           const term = this.terminals.get(id);
-          if (term) term.terminal.write(data);
+          if (term) {
+            term.terminal.write(data);
+            // Activity indicator: flash tab if it's not the active one
+            const tab = this._findTabForTerminalId(id);
+            if (tab && tab.id !== this.activeTabId && !tab.hasActivity) {
+              tab.hasActivity = true;
+              const tabEl = document.querySelector(`.tab[data-tab-id="${tab.id}"]`);
+              if (tabEl) tabEl.classList.add('activity');
+            }
+          }
         });
 
         window.terminalAPI.onExit(({ id }) => {
@@ -1437,14 +1663,22 @@
         document.addEventListener('keydown', (e) => {
           const mod = e.ctrlKey || e.metaKey;
           if (!mod) return;
-          // Ctrl+Shift+D → vertical split. Captured before xterm so it doesn't reach the PTY.
-          // Ctrl+D (no shift) is intentionally left alone — it sends EOF to the shell.
           if (e.shiftKey && e.code === 'KeyD') {
             e.preventDefault();
             e.stopPropagation();
             this.splitActivePane('vertical');
           }
-        }, true); // capture phase — fires before xterm's canvas event listeners
+          if (e.shiftKey && e.code === 'KeyH') {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showPasteHistory();
+          }
+          if (e.shiftKey && e.code === 'KeyB') {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleBroadcast();
+          }
+        }, true);
 
         // Single global resize handler fits all terminals — avoids per-terminal listener accumulation
         window.addEventListener('resize', () => {
@@ -1752,14 +1986,14 @@
           }
           if (mod && (e.key === 'v' || (e.shiftKey && e.key === 'V'))) {
             navigator.clipboard.readText().then(text => {
-              if (text) terminal.paste(text);
+              if (text) { this.addToPasteHistory(text); this._pasteToActive(text); }
             }).catch(() => {});
             return false;
           }
           return true;
         });
 
-        // Right-click pastes from clipboard
+        // Right-click: copy selection or paste from clipboard
         wrapper.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           const sel = terminal.getSelection();
@@ -1767,7 +2001,7 @@
             navigator.clipboard.writeText(sel).catch(() => {});
           } else {
             navigator.clipboard.readText().then(text => {
-              if (text) terminal.paste(text);
+              if (text) { this.addToPasteHistory(text); this._pasteToActive(text); }
             }).catch(() => {});
           }
         });
@@ -1777,7 +2011,13 @@
         tab.terminals.push(terminalData);
         tab.activeTerminalIndex = tab.terminals.length - 1;
 
-        terminal.onData((data) => window.terminalAPI.write(result.id, data));
+        terminal.onData((data) => {
+          if (this.broadcastInput) {
+            const tab = this.tabs.find(t => t.id === this.activeTabId);
+            if (tab) { tab.terminals.forEach(t => window.terminalAPI.write(t.id, data)); return; }
+          }
+          window.terminalAPI.write(result.id, data);
+        });
         terminal.onResize(({ cols, rows }) => {
           window.terminalAPI.resize(result.id, cols, rows);
           document.getElementById('dimensions').textContent = `${cols}x${rows}`;
@@ -1822,11 +2062,14 @@
         if (this.currentWorkspace) this.currentWorkspace.activeTabId = tabId;
         document.querySelectorAll('.terminal-view').forEach(v => v.classList.remove('active'));
         const tab = this.tabs.find(t => t.id === tabId);
-        if (tab && tab.container) {
-          tab.container.classList.add('active');
-          tab.terminals.forEach(t => t.fitAddon.fit());
-          const active = tab.terminals[tab.activeTerminalIndex];
-          if (active) active.terminal.focus();
+        if (tab) {
+          tab.hasActivity = false;
+          if (tab.container) {
+            tab.container.classList.add('active');
+            tab.terminals.forEach(t => t.fitAddon.fit());
+            const active = tab.terminals[tab.activeTerminalIndex];
+            if (active) active.terminal.focus();
+          }
         }
         this.renderTabs();
       }
@@ -1960,15 +2203,18 @@
 
         this.tabs.forEach(tab => {
           const tabEl = document.createElement('button');
-          tabEl.className = `tab ${tab.id === this.activeTabId ? 'active' : ''}`;
+          tabEl.className = `tab ${tab.id === this.activeTabId ? 'active' : ''}${tab.hasActivity && tab.id !== this.activeTabId ? ' activity' : ''}`;
+          tabEl.dataset.tabId = tab.id;
 
           const iconEl = document.createElement('span');
           iconEl.className = 'tab-icon';
           iconEl.textContent = '⌘';
+          if (tab.color) iconEl.style.color = tab.color;
 
           const titleEl = document.createElement('span');
           titleEl.className = 'tab-title';
           titleEl.textContent = tab.title;
+          if (tab.color) tabEl.style.setProperty('--tab-active', tab.color);
 
           const closeEl = document.createElement('span');
           closeEl.className = 'tab-close';
@@ -1994,6 +2240,7 @@
                 const t = document.querySelector('.tab.active .tab-title');
                 if (t) this.startTabRename(tab.id, t);
               }},
+              { label: 'Set Color', action: () => this.showTabColorPicker(tab.id, tabEl) },
               'separator',
               { label: '⊟  Split Horizontally', action: () => this.splitActivePane('horizontal') },
               { label: '⊞  Split Vertically',   action: () => this.splitActivePane('vertical') },
@@ -2023,6 +2270,13 @@
         splitVBtn.innerHTML = '⊞';
         splitVBtn.onclick = () => this.splitActivePane('vertical');
         tabbar.appendChild(splitVBtn);
+
+        const broadcastBtn = document.createElement('button');
+        broadcastBtn.className = `broadcast-btn${this.broadcastInput ? ' active' : ''}`;
+        broadcastBtn.title = `Broadcast Input to all panes (Ctrl+Shift+B)\nWhen active, keystrokes go to every split pane`;
+        broadcastBtn.textContent = '⊕ BC';
+        broadcastBtn.onclick = () => this.toggleBroadcast();
+        tabbar.appendChild(broadcastBtn);
 
         const sshBtn = document.createElement('button');
         sshBtn.className = 'ssh-btn';
@@ -2260,7 +2514,9 @@
         document.getElementById('commandPalette').classList.remove('visible');
         document.getElementById('searchOverlay').classList.remove('visible');
         document.getElementById('settingsOverlay').classList.remove('visible');
+        document.getElementById('pasteHistoryOverlay').classList.remove('visible');
         document.getElementById('sshDropdown')?.remove();
+        document.getElementById('contextMenu')?.remove();
       }
 
       showSettings() {
@@ -2287,6 +2543,16 @@
         document.getElementById('settingsShell').value = s.shell || '';
         document.getElementById('updateStatus').textContent = '';
 
+        const opacity = s.opacity != null ? s.opacity : 1.0;
+        document.getElementById('settingsOpacity').value = opacity;
+        document.getElementById('opacityLabel').textContent = Math.round(opacity * 100) + '%';
+
+        const hotkeyEnabled = !!s.hotkeyEnabled;
+        document.getElementById('settingsHotkeyEnabled').checked = hotkeyEnabled;
+        document.getElementById('settingsHotkey').value = s.hotkey || 'CommandOrControl+`';
+        document.getElementById('hotkeyRow').style.display = hotkeyEnabled ? 'flex' : 'none';
+        document.getElementById('hotkeyHint').style.display = hotkeyEnabled ? 'block' : 'none';
+
         window.terminalAPI.getAppVersion().then(v => {
           document.getElementById('aboutVersion').textContent = `v${v}`;
         });
@@ -2305,6 +2571,10 @@
           ? document.getElementById('settingsCustomFont').value.trim()
           : presetVal;
 
+        const opacity = parseFloat(document.getElementById('settingsOpacity').value) || 1.0;
+        const hotkeyEnabled = document.getElementById('settingsHotkeyEnabled').checked;
+        const hotkey = document.getElementById('settingsHotkey').value.trim() || 'CommandOrControl+`';
+
         const newSettings = {
           fontFamily: fontFamily || DEFAULT_SETTINGS.fontFamily,
           fontSize: parseInt(document.getElementById('settingsFontSize').value, 10) || 13,
@@ -2314,12 +2584,17 @@
           shell: document.getElementById('settingsShell').value.trim(),
           theme: document.getElementById('settingsTheme').value,
           titlebarStyle: document.getElementById('settingsTitlebarStyle').value,
+          opacity,
+          hotkeyEnabled,
+          hotkey,
         };
 
         const result = await window.terminalAPI.saveSettings(newSettings);
         if (result.success) {
           this.settings = newSettings;
           this.applySettingsToAllTerminals();
+          window.terminalAPI.setOpacity(opacity);
+          window.terminalAPI.setHotkey({ enabled: hotkeyEnabled, hotkey });
           this.hideSettings();
         }
       }
@@ -2450,6 +2725,146 @@
       }
 
       hasSelection() { return window.getSelection().toString().length > 0; }
+
+      // ─── Utility helpers ─────────────────────────────────────────────────────
+
+      _findTabForTerminalId(id) {
+        for (const ws of this.workspaces) {
+          for (const tab of ws.tabs) {
+            if (tab.terminals.some(t => t.id === id)) return tab;
+          }
+        }
+        return null;
+      }
+
+      _pasteToActive(text) {
+        if (this.broadcastInput) {
+          const tab = this.tabs.find(t => t.id === this.activeTabId);
+          if (tab) { tab.terminals.forEach(t => t.terminal.paste(text)); return; }
+        }
+        const tab = this.tabs.find(t => t.id === this.activeTabId);
+        if (tab) {
+          const termData = tab.terminals[tab.activeTerminalIndex];
+          if (termData) termData.terminal.paste(text);
+        }
+      }
+
+      _showToast(message) {
+        const existing = document.getElementById('toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.add('visible');
+          setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 300);
+          }, 2000);
+        });
+      }
+
+      // ─── Broadcast Input ─────────────────────────────────────────────────────
+
+      toggleBroadcast() {
+        this.broadcastInput = !this.broadcastInput;
+        this.renderTabs();
+        this._showToast(this.broadcastInput ? '⊕ Broadcast Input ON — typing goes to all panes' : 'Broadcast Input OFF');
+      }
+
+      // ─── Paste History ───────────────────────────────────────────────────────
+
+      addToPasteHistory(text) {
+        if (!text || !text.trim()) return;
+        this.pasteHistory = this.pasteHistory.filter(h => h !== text);
+        this.pasteHistory.unshift(text);
+        if (this.pasteHistory.length > 50) this.pasteHistory.pop();
+      }
+
+      showPasteHistory() {
+        const list = document.getElementById('pasteHistoryList');
+        if (this.pasteHistory.length === 0) {
+          list.innerHTML = '<div class="paste-history-empty">No paste history yet.<br>Copy or paste something first.</div>';
+        } else {
+          list.innerHTML = this.pasteHistory.map((item, i) => {
+            const preview = item.replace(/\t/g, '→').replace(/\n/g, '↵').substring(0, 300);
+            return `<div class="paste-history-item" onclick="terminalManager.pasteFromHistory(${i})">${this._escHtml(preview)}</div>`;
+          }).join('');
+        }
+        document.getElementById('pasteHistoryOverlay').classList.add('visible');
+      }
+
+      pasteFromHistory(index) {
+        const text = this.pasteHistory[index];
+        if (!text) return;
+        this.addToPasteHistory(text); // re-bubble to top
+        this._pasteToActive(text);
+        document.getElementById('pasteHistoryOverlay').classList.remove('visible');
+      }
+
+      clearPasteHistory() {
+        this.pasteHistory = [];
+        this.showPasteHistory();
+      }
+
+      // ─── Tab Colors ──────────────────────────────────────────────────────────
+
+      showTabColorPicker(tabId, anchorEl) {
+        document.getElementById('contextMenu')?.remove();
+        const existing = document.getElementById('colorPickerPopup');
+        if (existing) { existing.remove(); return; }
+
+        const tab = this.tabs.find(t => t.id === tabId);
+        if (!tab) return;
+
+        const picker = document.createElement('div');
+        picker.className = 'color-picker-popup';
+        picker.id = 'colorPickerPopup';
+
+        TAB_COLORS.forEach(color => {
+          const swatch = document.createElement('div');
+          swatch.className = `color-swatch${color === null ? ' no-color' : ''}`;
+          if (color) swatch.style.background = color;
+          if (color === null) swatch.textContent = '✕';
+          swatch.title = color || 'Default';
+          swatch.onclick = () => {
+            tab.color = color;
+            picker.remove();
+            this.renderTabs();
+          };
+          picker.appendChild(swatch);
+        });
+
+        document.body.appendChild(picker);
+
+        const rect = anchorEl.getBoundingClientRect();
+        picker.style.top = (rect.bottom + 4) + 'px';
+        const pw = picker.offsetWidth;
+        picker.style.left = Math.min(rect.left, window.innerWidth - pw - 8) + 'px';
+
+        const dismiss = (e) => {
+          if (!picker.contains(e.target)) {
+            picker.remove();
+            document.removeEventListener('mousedown', dismiss);
+          }
+        };
+        setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
+      }
+
+      // ─── Settings helpers ─────────────────────────────────────────────────────
+
+      onOpacityPreview(value) {
+        document.getElementById('opacityLabel').textContent = Math.round(value * 100) + '%';
+        window.terminalAPI.setOpacity(parseFloat(value));
+      }
+
+      onHotkeyEnabledChange() {
+        const enabled = document.getElementById('settingsHotkeyEnabled').checked;
+        document.getElementById('hotkeyRow').style.display = enabled ? 'flex' : 'none';
+        document.getElementById('hotkeyHint').style.display = enabled ? 'block' : 'none';
+      }
     }
 
     const terminalManager = new TerminalManager();
