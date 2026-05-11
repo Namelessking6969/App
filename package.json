@@ -1,6 +1,6 @@
 {
   "name": "vibeterminal",
-  "version": "2.1.18",
+  "version": "2.1.19",
   "description": "A beautiful, feature-rich terminal emulator",
   "homepage": "https://github.com/vibeterminal/vibeterminal",
   "main": "src/main/main.js",
@@ -10,8 +10,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --enable-logging",
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --no-sandbox --enable-logging",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
@@ -73,6 +73,9 @@
     },
     "linux": {
       "category": "Development",
+      "executableArgs": [
+        "--no-sandbox"
+      ],
       "target": [
         {
           "target": "deb",
