@@ -1139,7 +1139,7 @@
         <div class="settings-section">
           <div class="settings-section-title">About</div>
           <div class="about-app-name">VibeTerminal</div>
-          <div class="about-version" id="aboutVersion">v2.2.3</div>
+          <div class="about-version" id="aboutVersion"></div>
           <div class="about-description">A beautiful, feature-rich terminal emulator built for developers who care about their tools.</div>
           <div class="about-tech-stack">
             <span class="about-tech-badge">Electron</span>
@@ -1314,6 +1314,7 @@
         this.platform = 'linux';
         this.lastMouseX = 0;
         this.lastMouseY = 0;
+        this._nextId = 0;
 
         this.commands = [
           { id: 'newTab',          title: 'New Tab',              shortcut: '⌘T',   action: () => this.addTab() },
@@ -1445,6 +1446,11 @@
           }
         }, true); // capture phase — fires before xterm's canvas event listeners
 
+        // Single global resize handler fits all terminals — avoids per-terminal listener accumulation
+        window.addEventListener('resize', () => {
+          this.terminals.forEach(({ fitAddon }) => fitAddon.fit());
+        });
+
         // Track mouse position so contextmenu handler has valid coords on Linux
         document.addEventListener('mousemove', (e) => { this.lastMouseX = e.clientX; this.lastMouseY = e.clientY; }, true);
         document.addEventListener('mousedown', (e) => { this.lastMouseX = e.clientX; this.lastMouseY = e.clientY; }, true);
@@ -1453,7 +1459,7 @@
       // ─── Workspace management ────────────────────────────────────────────────
 
       async addWorkspace(name) {
-        const id = Date.now().toString();
+        const id = String(++this._nextId);
         const num = this.workspaces.length + 1;
         const workspace = { id, name: name || `workspace ${num}`, tabs: [], activeTabId: null };
         this.workspaces.push(workspace);
@@ -1683,7 +1689,7 @@
       async addTab() {
         if (!this.currentWorkspace) return;
 
-        const id = Date.now().toString();
+        const id = String(++this._nextId);
         const shellPath = await window.terminalAPI.getShellPath();
         const shell = shellPath.split('/').pop();
 
@@ -1782,7 +1788,6 @@
           terminal.focus();
         });
 
-        window.addEventListener('resize', () => fitAddon.fit());
         terminal.focus();
       }
 
@@ -1945,9 +1950,7 @@
       clearActiveTerminal() {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
         if (tab && tab.terminals[tab.activeTerminalIndex]) {
-          const term = tab.terminals[tab.activeTerminalIndex].terminal;
-          term.clear();
-          term.write('\x1b[2J\x1b[H');
+          tab.terminals[tab.activeTerminalIndex].terminal.clear();
         }
       }
 
@@ -2175,7 +2178,7 @@
 
       async openSshTab(cmd, title) {
         if (!this.currentWorkspace) return;
-        const id = Date.now().toString();
+        const id = String(++this._nextId);
         const tab = { id, title: title || 'ssh', terminals: [], activeTerminalIndex: 0, container: null };
         this.currentWorkspace.tabs.push(tab);
         await this.createTerminalForTab(tab);
@@ -2217,7 +2220,40 @@
 
       showSearch() {
         document.getElementById('searchOverlay').classList.add('visible');
-        document.getElementById('searchInput').focus();
+        const input = document.getElementById('searchInput');
+        input.focus();
+        input.oninput = () => this._doSearch(true);
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? this._doSearch(false) : this._doSearch(true); }
+          if (e.key === 'Escape') this.hideOverlays();
+          e.stopPropagation();
+        };
+        document.getElementById('caseSensitive').onclick = () => {
+          document.getElementById('caseSensitive').classList.toggle('active');
+          this._doSearch(true);
+        };
+        document.getElementById('useRegex').onclick = () => {
+          document.getElementById('useRegex').classList.toggle('active');
+          this._doSearch(true);
+        };
+      }
+
+      _doSearch(forward) {
+        const tab = this.tabs.find(t => t.id === this.activeTabId);
+        if (!tab) return;
+        const termData = tab.terminals[tab.activeTerminalIndex];
+        if (!termData) return;
+        const term = document.getElementById('searchInput').value;
+        if (!term) return;
+        const opts = {
+          caseSensitive: document.getElementById('caseSensitive').classList.contains('active'),
+          regex: document.getElementById('useRegex').classList.contains('active'),
+        };
+        if (forward) {
+          termData.searchAddon.findNext(term, opts);
+        } else {
+          termData.searchAddon.findPrevious(term, opts);
+        }
       }
 
       hideOverlays() {

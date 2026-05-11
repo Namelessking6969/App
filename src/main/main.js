@@ -1,4 +1,4 @@
-const { app, BrowserWindow, webContents, ipcMain, Menu, shell, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, webContents, ipcMain, Menu, shell, dialog } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -20,7 +20,7 @@ let terminalIdCounter = 0;
 
 // Settings
 const DEFAULT_SETTINGS = {
-  fontFamily: '"MesloLGS NF", "JetBrains Mono", monospace',
+  fontFamily: '"MesloLGS NF", monospace',
   fontSize: 13,
   cursorStyle: 'block',
   cursorBlink: true,
@@ -384,8 +384,6 @@ ipcMain.handle('create-window', (event, { workspaceName } = {}) => {
 });
 
 ipcMain.handle('get-shell-path', () => SHELL);
-
-ipcMain.handle('get-cwd', () => os.homedir());
 
 ipcMain.handle('get-platform', () => process.platform);
 

@@ -39,7 +39,6 @@ contextBridge.exposeInMainWorld('terminalAPI', {
   isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
 
   getShellPath: () => ipcRenderer.invoke('get-shell-path'),
-  getCwd: () => ipcRenderer.invoke('get-cwd'),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
 
   // Settings
@@ -55,14 +54,17 @@ contextBridge.exposeInMainWorld('terminalAPI', {
   onUpdateAvailable: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('update-available', handler);
+    return () => ipcRenderer.removeListener('update-available', handler);
   },
   onUpdateDownloaded: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('update-downloaded', handler);
+    return () => ipcRenderer.removeListener('update-downloaded', handler);
   },
   onUpdateStatus: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('update-status', handler);
+    return () => ipcRenderer.removeListener('update-status', handler);
   },
 
   openExternal: (url) => ipcRenderer.send('open-external', url),
