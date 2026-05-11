@@ -1,6 +1,6 @@
 {
   "name": "vibeterminal",
-  "version": "2.2.12",
+  "version": "3.0.0",
   "description": "A beautiful, feature-rich terminal emulator",
   "homepage": "https://github.com/vibeterminal/vibeterminal",
   "main": "src/main/main.js",
@@ -10,12 +10,15 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "electron . --no-sandbox",
-    "dev": "electron . --no-sandbox --enable-logging",
-    "build": "electron-builder",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:win": "electron-builder --win",
+    "build:ts": "tsc",
+    "build:renderer": "esbuild src/renderer/renderer.ts --bundle --outfile=src/renderer/renderer.bundle.js --platform=browser --target=es2020",
+    "build:all": "npm run build:ts && npm run build:renderer",
+    "start": "npm run build:all && electron . --no-sandbox",
+    "dev": "npm run build:all && electron . --no-sandbox --enable-logging",
+    "build": "npm run build:all && electron-builder",
+    "build:mac": "npm run build:all && electron-builder --mac",
+    "build:linux": "npm run build:all && electron-builder --linux",
+    "build:win": "npm run build:all && electron-builder --win",
     "postinstall": "electron-builder install-app-deps",
     "version:bump": "./scripts/bump-version.sh",
     "version:bump:minor": "./scripts/bump-version.sh minor",
@@ -31,8 +34,11 @@
     "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
+    "@types/node": "^20.19.40",
     "electron": "^28.1.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.9.3"
   },
   "build": {
     "appId": "com.vibeterminal.app",
