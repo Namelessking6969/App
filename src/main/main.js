@@ -5,6 +5,12 @@ const fs = require('fs');
 const pty = require('node-pty');
 const log = require('electron-log');
 
+// On Linux, Electron's renderer sandbox sets the no_new_privs kernel flag which
+// propagates to every PTY child process and prevents sudo from running as root.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+}
+
 log.transports.file.level = 'info';
 log.transports.console.level = 'debug';
 
