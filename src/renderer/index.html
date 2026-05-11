@@ -179,6 +179,20 @@
 
     .tab-new:hover { color: var(--fg); }
 
+    .split-btn {
+      padding: 4px 7px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg-dim);
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .split-btn:hover { color: var(--fg); border-color: var(--accent-dim); background: rgba(255,255,255,0.05); }
+
     /* Terminal Container */
     .terminal-container {
       flex: 1;
@@ -1223,8 +1237,8 @@
         this.commands = [
           { id: 'newTab',          title: 'New Tab',              shortcut: '⌘T',   action: () => this.addTab() },
           { id: 'closeTab',        title: 'Close Tab',            shortcut: '⌘W',   action: () => this.closeActiveTab() },
-          { id: 'splitH',          title: 'Split Horizontally',   shortcut: '⌘D',   action: () => this.splitActiveTab('horizontal') },
-          { id: 'splitV',          title: 'Split Vertically',     shortcut: '⌘⇧D',  action: () => this.splitActiveTab('vertical') },
+          { id: 'splitH',          title: 'Split Horizontally',   shortcut: '⌘D',   action: () => this.splitActivePane('horizontal') },
+          { id: 'splitV',          title: 'Split Vertically',     shortcut: '⌘⇧D',  action: () => this.splitActivePane('vertical') },
           { id: 'nextTab',         title: 'Next Tab',             shortcut: '⌘⇧]',  action: () => this.nextTab() },
           { id: 'prevTab',         title: 'Previous Tab',         shortcut: '⌘⇧[',  action: () => this.prevTab() },
           { id: 'newWorkspace',    title: 'New Workspace',        shortcut: '⌘⇧N',  action: () => this.addWorkspace() },
@@ -1277,8 +1291,8 @@
         window.terminalAPI.onClearTerminal(() => this.clearActiveTerminal());
         window.terminalAPI.onNextTab(() => this.nextTab());
         window.terminalAPI.onPrevTab(() => this.prevTab());
-        window.terminalAPI.onSplitHorizontal(() => this.splitActiveTab('horizontal'));
-        window.terminalAPI.onSplitVertical(() => this.splitActiveTab('vertical'));
+        window.terminalAPI.onSplitHorizontal(() => this.splitActivePane('horizontal'));
+        window.terminalAPI.onSplitVertical(() => this.splitActivePane('vertical'));
         window.terminalAPI.onShowSearch(() => this.showSearch());
         window.terminalAPI.onShowCommandPalette(() => this.showCommandPalette());
         window.terminalAPI.onShowSettings(() => this.showSettings());
@@ -1293,6 +1307,7 @@
           for (const ws of this.workspaces) {
             const tab = ws.tabs.find(t => t.terminals.some(tn => tn.id === id));
             if (tab) {
+              const exitedTermData = tab.terminals.find(tn => tn.id === id);
               tab.terminals = tab.terminals.filter(tn => tn.id !== id);
               if (tab.terminals.length === 0) {
                 if (ws.id === this.activeWorkspaceId) {
@@ -1300,6 +1315,11 @@
                 } else {
                   ws.tabs = ws.tabs.filter(t => t.id !== tab.id);
                 }
+              } else if (exitedTermData) {
+                this._collapsePane(exitedTermData.wrapper, tab);
+                tab.activeTerminalIndex = Math.min(tab.activeTerminalIndex, tab.terminals.length - 1);
+                const active = tab.terminals[tab.activeTerminalIndex];
+                if (active) active.terminal.focus();
               }
               break;
             }
@@ -1340,7 +1360,7 @@
           if (e.shiftKey && e.code === 'KeyD') {
             e.preventDefault();
             e.stopPropagation();
-            this.splitActiveTab('vertical');
+            this.splitActivePane('vertical');
           }
         }, true); // capture phase — fires before xterm's canvas event listeners
 
@@ -1586,7 +1606,7 @@
         const shellPath = await window.terminalAPI.getShellPath();
         const shell = shellPath.split('/').pop();
 
-        const tab = { id, title: shell, terminals: [], activeTerminalIndex: 0, container: null, splitDirection: null };
+        const tab = { id, title: shell, terminals: [], activeTerminalIndex: 0, container: null };
         this.currentWorkspace.tabs.push(tab);
         await this.createTerminalForTab(tab);
         this.setActiveTab(id);
@@ -1737,25 +1757,24 @@
         this.setActiveTab(this.tabs[(index - 1 + this.tabs.length) % this.tabs.length].id);
       }
 
-      async splitActiveTab(direction) {
+      async splitActivePane(direction) {
         const tab = this.tabs.find(t => t.id === this.activeTabId);
-        if (!tab || tab.terminals.length === 0 || tab.splitDirection) return;
+        if (!tab || tab.terminals.length === 0) return;
 
-        tab.splitDirection = direction;
-        const tabRoot = tab.container;
+        const activeTermData = tab.terminals[tab.activeTerminalIndex];
+        if (!activeTermData) return;
 
-        // Pull the existing terminal wrapper out of the tab root
-        const existingTermData = tab.terminals[0];
-        const existingWrapper = existingTermData.wrapper;
-        existingWrapper.remove();
+        const wrapper = activeTermData.wrapper;
+        // parent is tab.container for the first split, or a .split-pane for nested splits
+        const parent = wrapper.parentElement;
+        wrapper.remove();
 
-        // Build the split layout
         const splitContainer = document.createElement('div');
         splitContainer.className = `split-container ${direction}`;
 
         const pane1 = document.createElement('div');
         pane1.className = 'split-pane';
-        pane1.appendChild(existingWrapper);
+        pane1.appendChild(wrapper);
 
         const divider = document.createElement('div');
         divider.className = `split-divider ${direction}`;
@@ -1766,18 +1785,38 @@
         splitContainer.appendChild(pane1);
         splitContainer.appendChild(divider);
         splitContainer.appendChild(pane2);
-        tabRoot.appendChild(splitContainer);
+        parent.appendChild(splitContainer);
 
         this._setupDividerDrag(divider, pane1, pane2, direction, tab);
+        setTimeout(() => activeTermData.fitAddon.fit(), 50);
 
-        // Re-fit the existing terminal now that it's in a pane
-        setTimeout(() => existingTermData.fitAddon.fit(), 50);
-
-        // Spawn a new terminal in pane2
         const wrapper2 = document.createElement('div');
         wrapper2.className = 'terminal-wrapper';
         pane2.appendChild(wrapper2);
         await this._spawnTerminalInWrapper(tab, wrapper2);
+      }
+
+      _collapsePane(wrapper, tab) {
+        const pane = wrapper.parentElement;
+        if (!pane || !pane.classList.contains('split-pane')) return;
+
+        const splitContainer = pane.parentElement;
+        if (!splitContainer || !splitContainer.classList.contains('split-container')) return;
+
+        const parent = splitContainer.parentElement;
+
+        // Find the sibling pane (not the exiting one, not the divider)
+        const sibling = [...splitContainer.children].find(c =>
+          c !== pane && !c.classList.contains('split-divider')
+        );
+        if (!sibling) return;
+
+        // Move sibling's content up to the parent, discard the split container
+        const toKeep = [...sibling.children];
+        splitContainer.remove();
+        toKeep.forEach(el => parent.appendChild(el));
+
+        setTimeout(() => tab.terminals.forEach(t => t.fitAddon.fit()), 50);
       }
 
       _setupDividerDrag(divider, pane1, pane2, direction, tab) {
@@ -1872,6 +1911,9 @@
                 if (t) this.startTabRename(tab.id, t);
               }},
               'separator',
+              { label: '⊟  Split Horizontally', action: () => this.splitActivePane('horizontal') },
+              { label: '⊞  Split Vertically',   action: () => this.splitActivePane('vertical') },
+              'separator',
               { label: 'Close Tab', danger: true, action: () => this.closeTab(tab.id) },
             ]);
           };
@@ -1883,6 +1925,20 @@
         newTabBtn.innerHTML = '+';
         newTabBtn.onclick = () => this.addTab();
         tabbar.appendChild(newTabBtn);
+
+        const splitHBtn = document.createElement('button');
+        splitHBtn.className = 'split-btn';
+        splitHBtn.title = 'Split Horizontally (Ctrl+D)';
+        splitHBtn.innerHTML = '⊟';
+        splitHBtn.onclick = () => this.splitActivePane('horizontal');
+        tabbar.appendChild(splitHBtn);
+
+        const splitVBtn = document.createElement('button');
+        splitVBtn.className = 'split-btn';
+        splitVBtn.title = 'Split Vertically (Ctrl+Shift+D)';
+        splitVBtn.innerHTML = '⊞';
+        splitVBtn.onclick = () => this.splitActivePane('vertical');
+        tabbar.appendChild(splitVBtn);
 
         const sshBtn = document.createElement('button');
         sshBtn.className = 'ssh-btn';
@@ -2039,7 +2095,7 @@
       async openSshTab(cmd, title) {
         if (!this.currentWorkspace) return;
         const id = Date.now().toString();
-        const tab = { id, title: title || 'ssh', terminals: [], activeTerminalIndex: 0, container: null, splitDirection: null };
+        const tab = { id, title: title || 'ssh', terminals: [], activeTerminalIndex: 0, container: null };
         this.currentWorkspace.tabs.push(tab);
         await this.createTerminalForTab(tab);
         this.setActiveTab(id);
