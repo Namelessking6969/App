@@ -554,6 +554,27 @@ ipcMain.handle('ssh-write-config', (_event: IpcMainInvokeEvent, { alias, hostnam
   }
 });
 
+// SSH Groups
+const SSH_GROUPS_PATH = path.join(app.getPath('userData'), 'ssh-groups.json');
+
+ipcMain.handle('ssh-read-groups', () => {
+  try {
+    if (!fs.existsSync(SSH_GROUPS_PATH)) return { groups: [] };
+    return { groups: JSON.parse(fs.readFileSync(SSH_GROUPS_PATH, 'utf8')) };
+  } catch {
+    return { groups: [] };
+  }
+});
+
+ipcMain.handle('ssh-write-groups', (_event: IpcMainInvokeEvent, groups: unknown) => {
+  try {
+    fs.writeFileSync(SSH_GROUPS_PATH, JSON.stringify(groups, null, 2));
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+});
+
 // App events
 app.whenReady().then(() => {
   log.info('App ready, creating window');

@@ -26,6 +26,13 @@ interface SshHost {
   port: string;
 }
 
+interface SshGroup {
+  id: string;
+  name: string;
+  hostAliases: string[];
+  collapsed: boolean;
+}
+
 interface TerminalData {
   id: number;
   terminal: Terminal;
@@ -100,6 +107,8 @@ declare global {
       getPlatform(): Promise<string>;
       readSshConfig(): Promise<{ hosts: SshHost[] }>;
       writeSshConfig(entry: { alias: string; hostname: string; user?: string; port?: string }): Promise<{ success: boolean }>;
+      readSshGroups(): Promise<{ groups: SshGroup[] }>;
+      writeSshGroups(groups: SshGroup[]): Promise<{ success: boolean }>;
       getSettings(): Promise<Settings>;
       saveSettings(settings: Settings): Promise<{ success: boolean }>;
       checkForUpdates(): void;
@@ -1005,35 +1014,71 @@ class TerminalManager {
     if (existing) { existing.remove(); btn.classList.remove('active'); return; }
 
     btn.classList.add('active');
-    const hosts = await this.loadSshHosts();
+
+    const [hosts, groups] = await Promise.all([this.loadSshHosts(), this.loadSshGroups()]);
+
     const dropdown = document.createElement('div');
     dropdown.className = 'ssh-dropdown'; dropdown.id = 'sshDropdown';
 
-    let html = '';
-    if (hosts.length > 0) {
-      html += `<div class="ssh-section-label">Saved Hosts</div>`;
-      hosts.forEach((h, i) => {
-        const parts: string[] = [];
-        if (h.user) parts.push(h.user + '@');
-        parts.push(h.hostname || h.host);
-        if (h.port && h.port !== '22') parts.push(':' + h.port);
-        const detail = parts.join('');
-        html += `
-          <div class="ssh-host-item" data-index="${i}">
-            <div class="ssh-host-info">
-              <div class="ssh-host-name">${this._escHtml(h.host)}</div>
-              <div class="ssh-host-detail">${this._escHtml(detail)}</div>
-            </div>
-            <span class="ssh-host-connect">Connect →</span>
-          </div>`;
-      });
-      html += `<div class="ssh-dropdown-sep"></div>`;
-    } else {
+    // Build hosts / groups section
+    const assignedAliases = new Set(groups.flatMap(g => g.hostAliases));
+    const ungrouped = hosts.filter(h => !assignedAliases.has(h.host));
+
+    let html = `
+      <div class="ssh-groups-header">
+        <span class="ssh-section-label">SAVED HOSTS</span>
+        <button class="ssh-new-group-btn" id="sshNewGroupBtn">+ Group</button>
+      </div>`;
+
+    if (hosts.length === 0 && groups.length === 0) {
       html += `<div class="ssh-empty">No hosts in ~/.ssh/config</div>`;
-      html += `<div class="ssh-dropdown-sep"></div>`;
+    } else {
+      groups.forEach((group, gi) => {
+        const gHosts = hosts.filter(h => group.hostAliases.includes(h.host));
+        html += `
+          <div class="ssh-group">
+            <div class="ssh-group-header" data-gi="${gi}">
+              <span class="ssh-group-chevron">${group.collapsed ? '▶' : '▼'}</span>
+              <span class="ssh-group-name">${this._escHtml(group.name)}</span>
+              <span class="ssh-group-count">${gHosts.length}</span>
+              <button class="ssh-group-menu-btn" data-gi="${gi}">⋯</button>
+            </div>`;
+        if (!group.collapsed) {
+          if (gHosts.length === 0) {
+            html += `<div class="ssh-group-empty">No hosts — right-click a host to assign</div>`;
+          } else {
+            gHosts.forEach(h => {
+              html += `
+                <div class="ssh-host-item ssh-group-host" data-alias="${this._escHtml(h.host)}">
+                  <div class="ssh-host-info">
+                    <div class="ssh-host-name">${this._escHtml(h.host)}</div>
+                    <div class="ssh-host-detail">${this._escHtml(this._formatHostDetail(h))}</div>
+                  </div>
+                  <span class="ssh-host-connect">→</span>
+                </div>`;
+            });
+          }
+        }
+        html += `</div>`;
+      });
+
+      if (ungrouped.length > 0) {
+        if (groups.length > 0) html += `<div class="ssh-ungrouped-label">UNGROUPED</div>`;
+        ungrouped.forEach(h => {
+          html += `
+            <div class="ssh-host-item" data-alias="${this._escHtml(h.host)}">
+              <div class="ssh-host-info">
+                <div class="ssh-host-name">${this._escHtml(h.host)}</div>
+                <div class="ssh-host-detail">${this._escHtml(this._formatHostDetail(h))}</div>
+              </div>
+              <span class="ssh-host-connect">→</span>
+            </div>`;
+        });
+      }
     }
 
     html += `
+      <div class="ssh-dropdown-sep"></div>
       <div class="ssh-form-area">
         <div class="ssh-form-label">Quick Connect</div>
         <div class="ssh-quick-row">
@@ -1055,31 +1100,110 @@ class TerminalManager {
 
     dropdown.innerHTML = html;
 
-    hosts.forEach((h, i) => {
-      const item = dropdown.querySelector(`[data-index="${i}"]`);
-      if (item) item.addEventListener('click', () => { dropdown.remove(); btn.classList.remove('active'); this.connectSshHost(h); });
+    // ── Event delegation ──────────────────────────────────────────────────
+    dropdown.addEventListener('click', async (e) => {
+      const t = e.target as Element;
+
+      // ⋯ group menu button
+      const menuBtn = t.closest('.ssh-group-menu-btn') as HTMLElement | null;
+      if (menuBtn) {
+        e.stopPropagation();
+        const gi = parseInt(menuBtn.dataset.gi ?? '-1');
+        if (gi >= 0) {
+          const rect = menuBtn.getBoundingClientRect();
+          this._showGroupContextMenu(gi, groups, dropdown, btn, rect.right, rect.bottom + 2);
+        }
+        return;
+      }
+
+      // Group header → toggle collapse
+      const groupHeader = t.closest('.ssh-group-header') as HTMLElement | null;
+      if (groupHeader) {
+        const gi = parseInt(groupHeader.dataset.gi ?? '-1');
+        if (gi >= 0 && gi < groups.length) {
+          groups[gi].collapsed = !groups[gi].collapsed;
+          await this.saveGroups(groups);
+          dropdown.remove(); btn.classList.remove('active');
+          this.toggleSshDropdown(btn);
+        }
+        return;
+      }
+
+      // Host item → connect
+      const hostItem = t.closest('.ssh-host-item') as HTMLElement | null;
+      if (hostItem) {
+        const h = hosts.find(h => h.host === hostItem.dataset.alias);
+        if (h) { dropdown.remove(); btn.classList.remove('active'); this.connectSshHost(h); }
+        return;
+      }
+
+      // + New Group
+      if (t.closest('#sshNewGroupBtn')) {
+        this._showNewGroupInput(dropdown, groups, btn);
+        return;
+      }
+
+      // Quick connect
+      if (t.closest('#sshQuickBtn')) {
+        const input = dropdown.querySelector('#sshQuickInput') as HTMLInputElement;
+        const val = input.value.trim();
+        if (!val) { input.classList.add('error'); setTimeout(() => input?.classList.remove('error'), 1500); return; }
+        dropdown.remove(); btn.classList.remove('active');
+        this.openSshTab(val.includes(' ') ? val : `ssh ${val}`, val);
+        return;
+      }
+
+      // Save & connect
+      if (t.closest('#sshSaveBtn')) this.saveAndConnectSsh(dropdown, btn);
     });
 
-    (dropdown.querySelector('#sshQuickBtn') as HTMLElement).onclick = () => {
-      const input = dropdown.querySelector('#sshQuickInput') as HTMLInputElement;
-      const val = input.value.trim();
-      if (!val) { input.classList.add('error'); setTimeout(() => input?.classList.remove('error'), 1500); return; }
-      dropdown.remove(); btn.classList.remove('active');
-      this.openSshTab(val.includes(' ') ? val : `ssh ${val}`, val);
-    };
+    // Right-click a host → assign to group
+    dropdown.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const hostItem = (e.target as Element).closest('.ssh-host-item') as HTMLElement | null;
+      if (!hostItem) return;
+      const alias = hostItem.dataset.alias ?? '';
+      const h = hosts.find(h => h.host === alias);
+      if (!h) return;
+      const currentGroup = groups.find(g => g.hostAliases.includes(alias));
+      const items: MenuItem[] = [
+        { label: 'Connect', action: () => { dropdown.remove(); btn.classList.remove('active'); this.connectSshHost(h); } },
+      ];
+      if (groups.length > 0) {
+        items.push('separator');
+        groups.forEach(g => {
+          if (!g.hostAliases.includes(alias)) {
+            items.push({ label: `Move to "${g.name}"`, action: async () => {
+              groups.forEach(gr => { gr.hostAliases = gr.hostAliases.filter(a => a !== alias); });
+              g.hostAliases.push(alias);
+              await this.saveGroups(groups);
+              dropdown.remove(); btn.classList.remove('active');
+              this.toggleSshDropdown(btn);
+            }});
+          }
+        });
+        if (currentGroup) {
+          items.push({ label: 'Remove from Group', action: async () => {
+            currentGroup.hostAliases = currentGroup.hostAliases.filter(a => a !== alias);
+            await this.saveGroups(groups);
+            dropdown.remove(); btn.classList.remove('active');
+            this.toggleSshDropdown(btn);
+          }});
+        }
+      }
+      this.showContextMenu(e.clientX, e.clientY, items);
+    });
 
-    (dropdown.querySelector('#sshQuickInput') as HTMLElement).onkeydown = (e) => {
+    // Form keyboard shortcuts
+    (dropdown.querySelector('#sshQuickInput') as HTMLElement | null)?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') (dropdown.querySelector('#sshQuickBtn') as HTMLElement).click();
       e.stopPropagation();
-    };
-
-    (dropdown.querySelector('#sshSaveBtn') as HTMLElement).onclick = () => this.saveAndConnectSsh(dropdown, btn);
-
+    });
     ['#sshAlias', '#sshHostname', '#sshUser', '#sshPort'].forEach(sel => {
-      (dropdown.querySelector(sel) as HTMLElement).onkeydown = (e) => {
+      (dropdown.querySelector(sel) as HTMLElement | null)?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') (dropdown.querySelector('#sshSaveBtn') as HTMLElement).click();
         e.stopPropagation();
-      };
+      });
     });
 
     document.body.appendChild(dropdown);
@@ -1087,8 +1211,7 @@ class TerminalManager {
     const rect = btn.getBoundingClientRect();
     const dw = dropdown.offsetWidth;
     const vw = window.innerWidth;
-    const left = Math.min(rect.right - dw, vw - dw - 8);
-    dropdown.style.left = Math.max(8, left) + 'px';
+    dropdown.style.left = Math.max(8, Math.min(rect.right - dw, vw - dw - 8)) + 'px';
     dropdown.style.top = (rect.bottom + 4) + 'px';
 
     const dismiss = (e: MouseEvent) => {
@@ -1098,6 +1221,84 @@ class TerminalManager {
       }
     };
     setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
+  }
+
+  _formatHostDetail(h: SshHost): string {
+    const parts: string[] = [];
+    if (h.user) parts.push(h.user + '@');
+    parts.push(h.hostname || h.host);
+    if (h.port && h.port !== '22') parts.push(':' + h.port);
+    return parts.join('');
+  }
+
+  _showNewGroupInput(dropdown: HTMLElement, groups: SshGroup[], btn: HTMLElement): void {
+    const newGroupBtn = dropdown.querySelector('#sshNewGroupBtn') as HTMLButtonElement | null;
+    if (!newGroupBtn) return;
+    const input = document.createElement('input');
+    input.className = 'ssh-new-group-input';
+    input.placeholder = 'Group name…';
+    let done = false;
+    const submit = async () => {
+      if (done) return;
+      done = true;
+      const name = input.value.trim();
+      if (name) {
+        groups.push({ id: String(Date.now()), name, hostAliases: [], collapsed: false });
+        await this.saveGroups(groups);
+        dropdown.remove(); btn.classList.remove('active');
+        this.toggleSshDropdown(btn);
+      } else {
+        input.replaceWith(newGroupBtn);
+      }
+    };
+    input.onblur = submit;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') submit();
+      if (e.key === 'Escape') { done = true; input.value = ''; input.replaceWith(newGroupBtn); }
+      e.stopPropagation();
+    };
+    newGroupBtn.replaceWith(input);
+    requestAnimationFrame(() => input.focus());
+  }
+
+  _startGroupRename(gi: number, groups: SshGroup[], dropdown: HTMLElement, btn: HTMLElement): void {
+    const group = groups[gi];
+    const nameEl = dropdown.querySelector(`.ssh-group-header[data-gi="${gi}"] .ssh-group-name`) as HTMLElement | null;
+    if (!nameEl) return;
+    const input = document.createElement('input');
+    input.value = group.name;
+    input.className = 'ssh-new-group-input';
+    let done = false;
+    const submit = async () => {
+      if (done) return;
+      done = true;
+      const name = input.value.trim();
+      if (name) group.name = name;
+      await this.saveGroups(groups);
+      dropdown.remove(); btn.classList.remove('active');
+      this.toggleSshDropdown(btn);
+    };
+    input.onblur = submit;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') submit();
+      if (e.key === 'Escape') { done = true; input.value = group.name; submit(); }
+      e.stopPropagation();
+    };
+    nameEl.replaceWith(input);
+    requestAnimationFrame(() => { input.focus(); input.select(); });
+  }
+
+  _showGroupContextMenu(gi: number, groups: SshGroup[], dropdown: HTMLElement, btn: HTMLElement, x: number, y: number): void {
+    this.showContextMenu(x, y, [
+      { label: 'Rename', action: () => this._startGroupRename(gi, groups, dropdown, btn) },
+      'separator',
+      { label: 'Delete Group', danger: true, action: async () => {
+        groups.splice(gi, 1);
+        await this.saveGroups(groups);
+        dropdown.remove(); btn.classList.remove('active');
+        this.toggleSshDropdown(btn);
+      }},
+    ]);
   }
 
   _escHtml(str: string): string {
@@ -1111,6 +1312,17 @@ class TerminalManager {
       const result = await window.terminalAPI.readSshConfig();
       return result.hosts || [];
     } catch { return []; }
+  }
+
+  async loadSshGroups(): Promise<SshGroup[]> {
+    try {
+      const result = await window.terminalAPI.readSshGroups();
+      return result.groups || [];
+    } catch { return []; }
+  }
+
+  async saveGroups(groups: SshGroup[]): Promise<void> {
+    try { await window.terminalAPI.writeSshGroups(groups); } catch {}
   }
 
   connectSshHost(host: SshHost): void {

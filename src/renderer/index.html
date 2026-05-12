@@ -633,6 +633,25 @@
     .ssh-save-btn:hover { opacity: 0.88; }
     .ssh-empty { padding: 10px 14px 6px; font-size: 12px; color: var(--fg-dim); opacity: 0.7; }
 
+    /* ─── SSH Groups ────────────────────────────────────────────────────── */
+    .ssh-groups-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 6px; }
+    .ssh-new-group-btn { background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--accent); font-size: 11px; padding: 2px 7px; border-radius: 4px; cursor: pointer; transition: background 0.1s, border-color 0.1s; white-space: nowrap; }
+    .ssh-new-group-btn:hover { background: rgba(0,255,136,0.08); border-color: var(--accent); }
+    .ssh-group { }
+    .ssh-group-header { display: flex; align-items: center; padding: 5px 14px; cursor: pointer; transition: background 0.1s; gap: 6px; }
+    .ssh-group-header:hover { background: rgba(255,255,255,0.05); }
+    .ssh-group-header:hover .ssh-group-menu-btn { opacity: 1; }
+    .ssh-group-chevron { font-size: 9px; color: var(--fg-dim); width: 12px; flex-shrink: 0; transition: transform 0.15s; user-select: none; }
+    .ssh-group-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--fg); letter-spacing: 0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ssh-group-count { font-size: 10px; color: var(--fg-dim); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+    .ssh-group-menu-btn { background: transparent; border: none; color: var(--fg-dim); font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity 0.1s, color 0.1s; flex-shrink: 0; }
+    .ssh-group-menu-btn:hover { color: var(--fg); }
+    .ssh-group-host { padding-left: 28px !important; }
+    .ssh-group-empty { padding: 5px 14px 5px 28px; font-size: 11px; color: var(--fg-dim); opacity: 0.5; font-style: italic; }
+    .ssh-ungrouped-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--fg-dim); padding: 8px 14px 4px; opacity: 0.5; }
+    .ssh-new-group-input { width: calc(100% - 28px); margin: 4px 14px; padding: 4px 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,255,136,0.3); border-radius: 4px; color: var(--fg); font-size: 12px; outline: none; box-sizing: border-box; }
+    .ssh-new-group-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,255,136,0.1); }
+
     /* ─── Broadcast Input ───────────────────────────────────────────────── */
     .broadcast-btn {
       padding: 4px 7px; background: transparent;

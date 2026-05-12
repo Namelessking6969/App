@@ -56,6 +56,8 @@ const terminalAPI = {
   readSshConfig: () => ipcRenderer.invoke('ssh-read-config'),
   writeSshConfig: (entry: { alias: string; hostname: string; user?: string; port?: string }) =>
     ipcRenderer.invoke('ssh-write-config', entry),
+  readSshGroups: () => ipcRenderer.invoke('ssh-read-groups'),
+  writeSshGroups: (groups: unknown[]) => ipcRenderer.invoke('ssh-write-groups', groups),
 
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
