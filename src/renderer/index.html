@@ -715,6 +715,31 @@
     .color-swatch:hover { transform: scale(1.28); border-color: rgba(255,255,255,0.6); }
     .color-swatch.no-color { background: var(--bg) !important; border: 2px dashed rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--fg-dim); }
 
+    /* ─── Settings Tabs ────────────────────────────────────────────────── */
+    .settings-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 8px 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .settings-tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--fg-dim);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .settings-tab-btn:hover { color: var(--fg); }
+    .settings-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .settings-tab-panel { display: none; }
+    .settings-tab-panel.active { display: block; }
+
     /* ─── Feedback ─────────────────────────────────────────────────────── */
     .settings-feedback-textarea {
       width: 100%;
@@ -818,11 +843,18 @@
         <button class="settings-close" onclick="terminalManager.hideSettings()">✕</button>
       </div>
 
-      <div class="settings-body">
-        <!-- Appearance -->
-        <div class="settings-section">
-          <div class="settings-section-title">Appearance</div>
+      <!-- Tab Nav -->
+      <div class="settings-tabs">
+        <button class="settings-tab-btn active" onclick="switchSettingsTab('appearance', this)">Appearance</button>
+        <button class="settings-tab-btn" onclick="switchSettingsTab('about', this)">About</button>
+      </div>
 
+      <div class="settings-body">
+
+        <!-- Appearance tab: Appearance + Shell + Hotkey -->
+        <div class="settings-tab-panel active" id="stab-appearance">
+
+          <div class="settings-section-title">Appearance</div>
           <div class="settings-row">
             <span class="settings-label">Theme</span>
             <select class="settings-select" id="settingsTheme" onchange="terminalManager.onThemePreviewChange()">
@@ -833,7 +865,6 @@
               <option value="catppuccin">Catppuccin Mocha</option>
             </select>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Titlebar Style</span>
             <select class="settings-select" id="settingsTitlebarStyle">
@@ -843,7 +874,6 @@
               <option value="linux">Linux</option>
             </select>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Font Family</span>
             <select class="settings-select" id="settingsFontPreset" onchange="terminalManager.onFontPresetChange()">
@@ -857,18 +887,15 @@
               <option value="custom">Custom...</option>
             </select>
           </div>
-
           <div class="settings-row" id="customFontRow" style="display:none">
             <span class="settings-label">Custom Font</span>
             <input type="text" class="settings-input" id="settingsCustomFont" placeholder='"MyFont Nerd Font", monospace'>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Font Size</span>
             <input type="number" class="settings-input" id="settingsFontSize" min="8" max="32" value="13">
             <span style="font-size:12px;color:var(--fg-dim)">px</span>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Cursor Style</span>
             <select class="settings-select" id="settingsCursorStyle">
@@ -877,38 +904,29 @@
               <option value="underline">Underline</option>
             </select>
           </div>
-
           <div class="settings-checkbox-row">
             <input type="checkbox" id="settingsCursorBlink">
             <label class="settings-checkbox-label" for="settingsCursorBlink">Cursor Blink</label>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Scrollback</span>
             <input type="number" class="settings-input" id="settingsScrollback" min="100" max="100000" value="10000">
             <span style="font-size:12px;color:var(--fg-dim)">lines</span>
           </div>
-
           <div class="settings-row">
             <span class="settings-label">Opacity</span>
             <input type="range" class="settings-input" id="settingsOpacity" min="0.2" max="1" step="0.05" value="1" oninput="terminalManager.onOpacityPreview(this.value)">
             <span style="font-size:12px;color:var(--fg-dim);width:32px;text-align:right" id="opacityLabel">100%</span>
           </div>
-        </div>
 
-        <!-- Shell -->
-        <div class="settings-section">
-          <div class="settings-section-title">Shell</div>
+          <div class="settings-section-title" style="margin-top:20px">Shell</div>
           <div class="settings-row">
             <span class="settings-label">Shell Path</span>
             <input type="text" class="settings-input" id="settingsShell" placeholder="Leave empty for default">
           </div>
           <div class="settings-hint">e.g. /bin/zsh &nbsp;·&nbsp; Empty = use system default</div>
-        </div>
 
-        <!-- Hotkey Window -->
-        <div class="settings-section">
-          <div class="settings-section-title">Hotkey Window</div>
+          <div class="settings-section-title" style="margin-top:20px">Hotkey Window</div>
           <div class="settings-checkbox-row">
             <input type="checkbox" id="settingsHotkeyEnabled" onchange="terminalManager.onHotkeyEnabledChange()">
             <label class="settings-checkbox-label" for="settingsHotkeyEnabled">Enable global hotkey to show/hide window</label>
@@ -918,30 +936,26 @@
             <input type="text" class="settings-input" id="settingsHotkey" placeholder="e.g. CommandOrControl+`">
           </div>
           <div class="settings-hint" id="hotkeyHint" style="display:none">Summons the terminal from any app. Requires restart to take effect if changed.</div>
+
         </div>
 
-        <!-- Feedback -->
-        <div class="settings-section">
+        <!-- About tab: Feedback + Updates + About -->
+        <div class="settings-tab-panel" id="stab-about">
+
           <div class="settings-section-title">Feedback</div>
           <textarea class="settings-feedback-textarea" id="feedbackText" placeholder="Share your thoughts, report a bug, or suggest a feature..."></textarea>
           <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
             <button class="settings-btn-save" id="feedbackSendBtn" onclick="terminalManager.sendFeedback()">Send Feedback</button>
             <span class="settings-feedback-status" id="feedbackStatus"></span>
           </div>
-        </div>
 
-        <!-- Updates -->
-        <div class="settings-section">
-          <div class="settings-section-title">Updates</div>
+          <div class="settings-section-title" style="margin-top:20px">Updates</div>
           <div class="settings-row" style="align-items:center">
             <button class="settings-update-btn" onclick="terminalManager.checkForUpdates()">Check for Updates</button>
             <span class="settings-update-status" id="updateStatus"></span>
           </div>
-        </div>
 
-        <!-- About -->
-        <div class="settings-section">
-          <div class="settings-section-title">About</div>
+          <div class="settings-section-title" style="margin-top:20px">About</div>
           <div class="about-app-name">VibeTerminal</div>
           <div class="about-version" id="aboutVersion"></div>
           <div class="about-description">A beautiful, feature-rich terminal emulator built for developers who care about their tools.</div>
@@ -964,6 +978,7 @@
             </svg>
             View on GitHub
           </button>
+
         </div>
       </div>
 
@@ -988,6 +1003,14 @@
     </div>
   </div>
 
+  <script>
+    function switchSettingsTab(id, btn) {
+      document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('stab-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+  </script>
   <script src="renderer.bundle.js"></script>
 </body>
 </html>
