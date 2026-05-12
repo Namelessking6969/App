@@ -202,15 +202,69 @@ npm run build:linux
 Outputs land in the `dist/` directory.
 
 ### Bump version
+
+The script at `scripts/bump-version.sh` automatically updates all 4 version files.
+
 ```bash
-# Patch (default)
-npm run version:bump
+# Bump patch (1.0.0 → 1.0.1)
+./scripts/bump-version.sh patch
 
-# Minor
-npm run version:bump:minor
+# Bump minor (1.0.0 → 1.1.0)
+./scripts/bump-version.sh minor
 
-# Major
-npm run version:bump:major
+# Bump major (1.0.0 → 2.0.0)
+./scripts/bump-version.sh major
+```
+
+Or via npm scripts:
+
+```bash
+npm run version:bump        # patch
+npm run version:bump:minor  # minor
+npm run version:bump:major  # major
+```
+
+| File | Field(s) Updated |
+|------|-----------------|
+| `package.json` | `version` |
+| `Resources/Info.plist` | `CFBundleShortVersionString`, `CFBundleVersion` (auto-incremented build number) |
+| `project.yml` | `CFBundleShortVersionString`, `CFBundleVersion` |
+| `scripts/create-pkg.sh` | `PRODUCT_VERSION` |
+
+**Release checklist:**
+
+- [ ] Run `./scripts/bump-version.sh [major|minor|patch]`
+- [ ] Verify all 4 files were updated correctly
+- [ ] Update `CHANGELOG.md` with changes since last release
+- [ ] Verify all new dependencies are committed (`package-lock.json`)
+- [ ] Build and smoke-test: `npm run build`
+- [ ] Confirm app icon / assets are up to date if visual changes were made
+
+**Tagging & push:**
+
+```bash
+# 1. Bump versions (script handles all files)
+./scripts/bump-version.sh patch   # or minor / major
+
+# 2. Commit version bump
+git add package.json Resources/Info.plist project.yml scripts/create-pkg.sh
+git commit -m "Bump version to X.Y.Z"
+
+# 3. Create annotated tag
+git tag -a vX.Y.Z -m "Version X.Y.Z"
+
+# 4. Push commits and tag
+git push origin main
+git push origin vX.Y.Z
+```
+
+**Verify tag contents:**
+
+```bash
+git show vX.Y.Z:package.json | grep '"version"'
+git show vX.Y.Z:Resources/Info.plist | grep -A1 'CFBundleShortVersionString'
+git show vX.Y.Z:project.yml | grep 'CFBundleShortVersionString'
+git show vX.Y.Z:scripts/create-pkg.sh | grep 'PRODUCT_VERSION'
 ```
 
 ---
