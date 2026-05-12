@@ -1,6 +1,6 @@
 {
   "name": "vibeterminal",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "A beautiful, feature-rich terminal emulator",
   "homepage": "https://github.com/vibeterminal/vibeterminal",
   "main": "src/main/main.js",
@@ -58,6 +58,12 @@
       "node_modules/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": [
@@ -79,6 +85,7 @@
     },
     "linux": {
       "category": "Development",
+      "icon": "build/icons",
       "executableArgs": [
         "--no-sandbox"
       ],
