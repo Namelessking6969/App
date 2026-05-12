@@ -38,6 +38,8 @@ const terminalAPI = {
     // SSH
     readSshConfig: () => electron_1.ipcRenderer.invoke('ssh-read-config'),
     writeSshConfig: (entry) => electron_1.ipcRenderer.invoke('ssh-write-config', entry),
+    readSshGroups: () => electron_1.ipcRenderer.invoke('ssh-read-groups'),
+    writeSshGroups: (groups) => electron_1.ipcRenderer.invoke('ssh-write-groups', groups),
     // Settings
     getSettings: () => electron_1.ipcRenderer.invoke('get-settings'),
     saveSettings: (settings) => electron_1.ipcRenderer.invoke('save-settings', settings),
@@ -59,7 +61,6 @@ const terminalAPI = {
         electron_1.ipcRenderer.on('update-status', handler);
         return () => electron_1.ipcRenderer.removeListener('update-status', handler);
     },
-    setOpacity: (value) => electron_1.ipcRenderer.send('window-set-opacity', value),
     setHotkey: (opts) => electron_1.ipcRenderer.invoke('set-hotkey', opts),
     openExternal: (url) => electron_1.ipcRenderer.send('open-external', url),
     getAppVersion: () => electron_1.ipcRenderer.invoke('get-app-version'),

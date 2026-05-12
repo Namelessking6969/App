@@ -47,6 +47,11 @@ if (process.platform === 'linux') {
 }
 electron_log_1.default.transports.file.level = 'info';
 electron_log_1.default.transports.console.level = 'debug';
+function getIconPath() {
+    return electron_1.app.isPackaged
+        ? path_1.default.join(process.resourcesPath, 'icon.png')
+        : path_1.default.join(__dirname, '../../build/icon.png');
+}
 let mainWindow = null;
 const terminals = new Map();
 let terminalIdCounter = 0;
@@ -178,7 +183,7 @@ function createWindow(opts = {}) {
             nodeIntegration: false,
             sandbox: false,
         },
-        icon: path_1.default.join(__dirname, '../build/icon.png'),
+        icon: getIconPath(),
     });
     const loadOptions = opts.workspaceName
         ? { hash: `ws=${encodeURIComponent(opts.workspaceName)}` }
@@ -502,6 +507,27 @@ electron_1.ipcMain.handle('ssh-write-config', (_event, { alias, hostname, user, 
     }
     catch (e) {
         electron_log_1.default.error('ssh-write-config error:', e);
+        return { success: false, error: e.message };
+    }
+});
+// SSH Groups
+const SSH_GROUPS_PATH = path_1.default.join(electron_1.app.getPath('userData'), 'ssh-groups.json');
+electron_1.ipcMain.handle('ssh-read-groups', () => {
+    try {
+        if (!fs_1.default.existsSync(SSH_GROUPS_PATH))
+            return { groups: [] };
+        return { groups: JSON.parse(fs_1.default.readFileSync(SSH_GROUPS_PATH, 'utf8')) };
+    }
+    catch {
+        return { groups: [] };
+    }
+});
+electron_1.ipcMain.handle('ssh-write-groups', (_event, groups) => {
+    try {
+        fs_1.default.writeFileSync(SSH_GROUPS_PATH, JSON.stringify(groups, null, 2));
+        return { success: true };
+    }
+    catch (e) {
         return { success: false, error: e.message };
     }
 });

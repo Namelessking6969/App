@@ -1168,29 +1168,36 @@ class TerminalManager {
       const currentGroup = groups.find(g => g.hostAliases.includes(alias));
       const items: MenuItem[] = [
         { label: 'Connect', action: () => { dropdown.remove(); btn.classList.remove('active'); this.connectSshHost(h); } },
+        'separator',
       ];
-      if (groups.length > 0) {
+
+      // Existing groups the host can move to
+      const otherGroups = groups.filter(g => !g.hostAliases.includes(alias));
+      otherGroups.forEach(g => {
+        items.push({ label: `Add to "${g.name}"`, action: async () => {
+          groups.forEach(gr => { gr.hostAliases = gr.hostAliases.filter(a => a !== alias); });
+          g.hostAliases.push(alias);
+          await this.saveGroups(groups);
+          dropdown.remove(); btn.classList.remove('active');
+          this.toggleSshDropdown(btn);
+        }});
+      });
+
+      // Create a new group and immediately add this host to it
+      items.push({ label: 'New Group…', action: () => {
+        this._showNewGroupInput(dropdown, groups, btn, alias);
+      }});
+
+      if (currentGroup) {
         items.push('separator');
-        groups.forEach(g => {
-          if (!g.hostAliases.includes(alias)) {
-            items.push({ label: `Move to "${g.name}"`, action: async () => {
-              groups.forEach(gr => { gr.hostAliases = gr.hostAliases.filter(a => a !== alias); });
-              g.hostAliases.push(alias);
-              await this.saveGroups(groups);
-              dropdown.remove(); btn.classList.remove('active');
-              this.toggleSshDropdown(btn);
-            }});
-          }
-        });
-        if (currentGroup) {
-          items.push({ label: 'Remove from Group', action: async () => {
-            currentGroup.hostAliases = currentGroup.hostAliases.filter(a => a !== alias);
-            await this.saveGroups(groups);
-            dropdown.remove(); btn.classList.remove('active');
-            this.toggleSshDropdown(btn);
-          }});
-        }
+        items.push({ label: `Remove from "${currentGroup.name}"`, action: async () => {
+          currentGroup.hostAliases = currentGroup.hostAliases.filter(a => a !== alias);
+          await this.saveGroups(groups);
+          dropdown.remove(); btn.classList.remove('active');
+          this.toggleSshDropdown(btn);
+        }, danger: true });
       }
+
       this.showContextMenu(e.clientX, e.clientY, items);
     });
 
@@ -1231,9 +1238,8 @@ class TerminalManager {
     return parts.join('');
   }
 
-  _showNewGroupInput(dropdown: HTMLElement, groups: SshGroup[], btn: HTMLElement): void {
+  _showNewGroupInput(dropdown: HTMLElement, groups: SshGroup[], btn: HTMLElement, initialAlias?: string): void {
     const newGroupBtn = dropdown.querySelector('#sshNewGroupBtn') as HTMLButtonElement | null;
-    if (!newGroupBtn) return;
     const input = document.createElement('input');
     input.className = 'ssh-new-group-input';
     input.placeholder = 'Group name…';
@@ -1243,21 +1249,36 @@ class TerminalManager {
       done = true;
       const name = input.value.trim();
       if (name) {
-        groups.push({ id: String(Date.now()), name, hostAliases: [], collapsed: false });
+        const hostAliases = initialAlias ? [initialAlias] : [];
+        // Remove alias from any existing group first
+        if (initialAlias) groups.forEach(g => { g.hostAliases = g.hostAliases.filter(a => a !== initialAlias); });
+        groups.push({ id: String(Date.now()), name, hostAliases, collapsed: false });
         await this.saveGroups(groups);
         dropdown.remove(); btn.classList.remove('active');
         this.toggleSshDropdown(btn);
-      } else {
+      } else if (newGroupBtn) {
         input.replaceWith(newGroupBtn);
+      } else {
+        input.remove();
       }
     };
     input.onblur = submit;
     input.onkeydown = (e) => {
       if (e.key === 'Enter') submit();
-      if (e.key === 'Escape') { done = true; input.value = ''; input.replaceWith(newGroupBtn); }
+      if (e.key === 'Escape') {
+        done = true; input.value = '';
+        if (newGroupBtn) input.replaceWith(newGroupBtn); else input.remove();
+      }
       e.stopPropagation();
     };
-    newGroupBtn.replaceWith(input);
+    if (newGroupBtn) {
+      newGroupBtn.replaceWith(input);
+    } else {
+      // Called from right-click with no "+ Group" button visible — append after last group
+      const hostsSection = dropdown.querySelector('.ssh-groups-header');
+      if (hostsSection) hostsSection.after(input);
+      else dropdown.appendChild(input);
+    }
     requestAnimationFrame(() => input.focus());
   }
 
