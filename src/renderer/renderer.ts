@@ -986,13 +986,13 @@ this.applyTheme(this.settings.theme || 'vibe', initOpacity);
 
     const splitHBtn = document.createElement('button');
     splitHBtn.className = 'split-btn';
-    splitHBtn.title = 'Split Horizontally (Ctrl+D)'; splitHBtn.innerHTML = '⎅';
+    splitHBtn.title = 'Split Vertically (Ctrl+D)'; splitHBtn.innerHTML = '⎅';
     splitHBtn.onclick = () => this.splitActivePane('horizontal');
     tabbar.appendChild(splitHBtn);
 
     const splitVBtn = document.createElement('button');
     splitVBtn.className = 'split-btn';
-    splitVBtn.title = 'Split Vertically (Ctrl+Shift+D)'; splitVBtn.innerHTML = '⊟';
+    splitVBtn.title = 'Split Horizontally (Ctrl+Shift+D)'; splitVBtn.innerHTML = '⊟';
     splitVBtn.onclick = () => this.splitActivePane('vertical');
     tabbar.appendChild(splitVBtn);
 
