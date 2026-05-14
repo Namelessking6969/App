@@ -106,8 +106,36 @@ jobs:
       - name: Publish release
         run: |
           TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+
+          WHATS_NEW=""
+          if [ -f .release-notes ]; then
+            WHATS_NEW=$(cat .release-notes)
+          fi
+
+          DOWNLOADS="## Downloads
+
+| Platform | File | Notes |
+|----------|------|-------|
+| Linux | \`.deb\` | Debian / Ubuntu |
+| macOS | \`.zip\` | Intel (x64) |
+| macOS | \`.zip\` | Apple Silicon (arm64) |
+| macOS | \`.pkg\` | Intel installer |
+| macOS | \`.pkg\` | Apple Silicon installer |
+| Windows | \`.exe\` | Windows installer |
+
+> **macOS:** Builds are unsigned. Right-click → Open on first launch to bypass Gatekeeper.
+> **Windows:** SmartScreen may warn on first run — click \"More info\" → \"Run anyway\"."
+
+          if [ -n "$WHATS_NEW" ]; then
+            NOTES="${WHATS_NEW}
+${DOWNLOADS}"
+          else
+            NOTES="${DOWNLOADS}"
+          fi
+
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" --title "VibeTerminal $TAG" --latest --notes ""
+          gh release create "$TAG" --title "VibeTerminal $TAG" --latest --notes "$NOTES"
           find artifacts -type f | while read f; do
             gh release upload "$TAG" "$f" --clobber
           done

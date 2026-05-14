@@ -25,14 +25,32 @@ switch ('$BUMP_TYPE') {
 
 echo "Bumping $CURRENT_VERSION -> $NEW_VERSION"
 echo ""
-printf "What changed in this version? "
-read -r CHANGE_MSG
+echo "Enter 'What's New' bullet points (one per line, blank line when done):"
+BULLETS=()
+while true; do
+  printf "  • "
+  read -r BULLET
+  [ -z "$BULLET" ] && break
+  BULLETS+=("$BULLET")
+done
 
-if [ -z "$CHANGE_MSG" ]; then
+if [ ${#BULLETS[@]} -eq 0 ]; then
   COMMIT_MSG="v$NEW_VERSION"
+  RELEASE_NOTES=""
 else
-  COMMIT_MSG="v$NEW_VERSION — $CHANGE_MSG"
+  COMMIT_MSG="v$NEW_VERSION — ${BULLETS[0]}"
+  RELEASE_NOTES=""
+  for b in "${BULLETS[@]}"; do
+    RELEASE_NOTES+="- $b"$'\n'
+  done
 fi
+
+# Write release notes file for the workflow to pick up
+cat > .release-notes <<EOF
+## What's New
+
+${RELEASE_NOTES}
+EOF
 
 node -e "
 const fs = require('fs');
@@ -71,7 +89,7 @@ fs.writeFileSync('scripts/create-pkg.sh', pkgSh);
 console.log('  updated scripts/create-pkg.sh');
 "
 
-git add package.json Resources/Info.plist project.yml scripts/create-pkg.sh
+git add package.json Resources/Info.plist project.yml scripts/create-pkg.sh .release-notes
 git commit -m "$COMMIT_MSG"
 git tag "v$NEW_VERSION"
 
