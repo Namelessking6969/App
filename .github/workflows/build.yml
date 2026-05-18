@@ -119,7 +119,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" --title "VibeTerminal $TAG" --latest --notes ""
+          gh release create "$TAG" --title "VibeTerminal $TAG" --latest --notes-file .release-notes
           find artifacts -type f | while read f; do
             gh release upload "$TAG" "$f" --clobber
           done
