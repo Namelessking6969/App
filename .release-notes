@@ -1,6 +1,8 @@
 ## What's New
 
-- _describe what changed in this release_
+- Updated release notes
+- Fixed the build file
+- Working on fixing the Mac portion
 
 ## Downloads
 
@@ -13,5 +15,3 @@
 | Windows | `.exe` | NSIS installer |
 | Linux | `.deb` | Debian / Ubuntu |
 
-> **macOS**: builds are unsigned. Right-click → Open on first launch to bypass Gatekeeper.
-> **Windows**: SmartScreen may warn on first run — click "More info → Run anyway".
