@@ -1,5 +1,4 @@
 ## What's New
 
-- Build Notes Fix
-- Fixing Mac install
+- Changed lined 201 to pull powershell instead of cmd
 
