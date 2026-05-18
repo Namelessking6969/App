@@ -1,4 +1,4 @@
 ## What's New
 
-- Changed lined 201 to pull powershell instead of cmd
+- Removed comspec to allow powershell to work
 
