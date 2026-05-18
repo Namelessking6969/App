@@ -1,7 +1,4 @@
 ## What's New
 
-- Silent fail: when initUpdater() returned null (e.g. bad config, missing electron-updater), nothing was sent back to the renderer so it hung on "Checking..." forever. Now
-- it sends an error message immediat
-- Network hang: even when the updater initialized fine, if the update server was unreachable and never fired an event, it would also hang forever. Now there's a 15-second
-- timeout that clears itself if any event fires fi
+- Mac should be able to build now, issue with the fallback not working correctly
 
