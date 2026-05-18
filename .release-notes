@@ -1,4 +1,17 @@
 ## What's New
 
-- new mac update
+- 
 
+## Downloads
+
+| Platform | File | Notes |
+|----------|------|-------|
+| macOS | `.zip` | Intel (x64) |
+| macOS | `.zip` | Apple Silicon (arm64) |
+| macOS | `.pkg` | Intel installer |
+| macOS | `.pkg` | Apple Silicon installer |
+| Windows | `.exe` | NSIS installer |
+| Linux | `.deb` | Debian / Ubuntu |
+
+> **macOS**: builds are unsigned. Right-click → Open on first launch to bypass Gatekeeper.
+> **Windows**: SmartScreen may warn on first run — click "More info → Run anyway".
