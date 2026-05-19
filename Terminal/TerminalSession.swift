@@ -82,6 +82,7 @@ class TerminalSession: ObservableObject {
         close(ptyMaster)
         
         setsid()
+        ioctl(slave, TIOCSCTTY, 0)
         dup2(slave, 0)
         dup2(slave, 1)
         dup2(slave, 2)
@@ -118,9 +119,6 @@ class TerminalSession: ObservableObject {
         source.resume()
         readSource = source
         
-        DispatchQueue.global().async { [weak self] in
-            self?.updateWindowSizePeriodically()
-        }
     }
     
     private func readOutput() {
@@ -180,12 +178,6 @@ class TerminalSession: ObservableObject {
         
         if ptyMaster >= 0 {
             ioctl(ptyMaster, TIOCSWINSZ, &winSize)
-        }
-    }
-    
-    private func updateWindowSizePeriodically() {
-        while isRunning {
-            Thread.sleep(forTimeInterval: 0.5)
         }
     }
     

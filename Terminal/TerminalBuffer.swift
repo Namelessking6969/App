@@ -6,18 +6,20 @@ struct TerminalCell: Identifiable, Equatable {
     var foregroundColor: Int
     var backgroundColor: Int
     var bold: Bool
+    var faint: Bool
     var italic: Bool
     var underline: Bool
     var strikethrough: Bool
     var inverse: Bool
     var blink: Bool
     var hyperlink: String?
-    
+
     static let defaultCell = TerminalCell(
         character: " ",
         foregroundColor: 7,
         backgroundColor: 0,
         bold: false,
+        faint: false,
         italic: false,
         underline: false,
         strikethrough: false,
@@ -56,6 +58,7 @@ class TerminalBuffer {
     private var currentForeground: Int = 7
     private var currentBackground: Int = 0
     private var currentBold: Bool = false
+    private var currentFaint: Bool = false
     private var currentItalic: Bool = false
     private var currentUnderline: Bool = false
     private var currentInverse: Bool = false
@@ -95,8 +98,22 @@ class TerminalBuffer {
     }
     
     private func processCharacter(_ char: Character) {
+        switch state {
+        case .escape:
+            processEscape(char)
+            return
+        case .csi:
+            processCSI(char)
+            return
+        case .osc:
+            processOSC(char)
+            return
+        case .normal:
+            break
+        }
+
         let code = char.asciiValue ?? 0
-        
+
         switch code {
         case 0x00...0x1F:
             processControlCharacter(code)
@@ -178,7 +195,7 @@ class TerminalBuffer {
             break
         }
         
-        if state == .normal { state = .normal }
+        if state == .escape { state = .normal }
     }
     
     private func processCSI(_ char: Character) {
@@ -208,8 +225,9 @@ class TerminalBuffer {
     
     private func executeCSI(_ command: Character) {
         let params = csiParams.isEmpty ? [1] : csiParams
-        
-        switch command {
+        let code = command.asciiValue ?? 0
+
+        switch code {
         case 0x40: // @ - insert characters
             insertCharacters(params[0])
         case 0x41: // A - cursor up
@@ -264,18 +282,19 @@ class TerminalBuffer {
                 currentForeground = 7
                 currentBackground = 0
                 currentBold = false
+                currentFaint = false
                 currentItalic = false
                 currentUnderline = false
                 currentInverse = false
                 currentBlink = false
             case 1: currentBold = true
-            case 2: currentBold = false
+            case 2: currentFaint = true
             case 3: currentItalic = true
             case 4: currentUnderline = true
             case 5, 6: currentBlink = true
             case 7: currentInverse = true
             case 9: currentBlink = true
-            case 22: currentBold = false
+            case 22: currentBold = false; currentFaint = false
             case 23: currentItalic = false
             case 24: currentUnderline = false
             case 25: currentBlink = false
@@ -308,20 +327,26 @@ class TerminalBuffer {
     }
     
     private func scrollUp(_ lines: Int) {
+        let top = scrollRegion.top
+        let bottom = min(scrollRegion.bottom, rows - 1)
         for _ in 0..<lines {
-            let removedLine = screen.removeFirst()
-            scrollback.append(removedLine)
-            if scrollback.count > scrollbackSize {
-                scrollback.removeFirst()
+            let removed = screen.remove(at: top)
+            if top == 0 && bottom == rows - 1 {
+                scrollback.append(removed)
+                if scrollback.count > scrollbackSize {
+                    scrollback.removeFirst()
+                }
             }
-            screen.append(Array(repeating: TerminalCell.defaultCell, count: columns))
+            screen.insert(Array(repeating: TerminalCell.defaultCell, count: columns), at: bottom)
         }
     }
-    
+
     private func scrollDown(_ lines: Int) {
+        let top = scrollRegion.top
+        let bottom = min(scrollRegion.bottom, rows - 1)
         for _ in 0..<lines {
-            screen.removeLast()
-            screen.insert(Array(repeating: TerminalCell.defaultCell, count: columns), at: scrollRegion.top)
+            screen.remove(at: bottom)
+            screen.insert(Array(repeating: TerminalCell.defaultCell, count: columns), at: top)
         }
     }
     
@@ -335,8 +360,9 @@ class TerminalBuffer {
     private func deleteCharacters(_ count: Int) {
         let start = cursor.x
         let end = min(start + count, columns)
+        let removed = end - start
         screen[cursor.y].removeSubrange(start..<end)
-        screen[cursor.y].append(contentsOf: Array(repeating: TerminalCell.defaultCell, count: count))
+        screen[cursor.y].append(contentsOf: Array(repeating: TerminalCell.defaultCell, count: removed))
     }
     
     private func insertLines(_ count: Int) {
@@ -401,6 +427,7 @@ class TerminalBuffer {
             foregroundColor: currentInverse ? currentBackground : currentForeground,
             backgroundColor: currentInverse ? currentForeground : currentBackground,
             bold: currentBold,
+            faint: currentFaint,
             italic: currentItalic,
             underline: currentUnderline,
             strikethrough: false,
@@ -417,6 +444,7 @@ class TerminalBuffer {
         currentForeground = 7
         currentBackground = 0
         currentBold = false
+        currentFaint = false
         currentItalic = false
         currentUnderline = false
         currentInverse = false

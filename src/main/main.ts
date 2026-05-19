@@ -231,11 +231,11 @@ function resolveShell(preferred: string): string {
 
 function resolveCwd(requested: string): string {
   try {
-    fs.accessSync(requested, fs.constants.R_OK);
+    fs.accessSync(requested, fs.constants.X_OK);
     return requested;
   } catch {
-    log.warn(`cwd not accessible (${requested}), falling back to /tmp`);
-    return '/tmp';
+    log.warn(`cwd not accessible (${requested}), falling back to home`);
+    return os.homedir();
   }
 }
 
@@ -547,6 +547,16 @@ ipcMain.handle('set-hotkey', (_event: IpcMainInvokeEvent, { enabled, hotkey }: S
 
 ipcMain.on('open-external', (_event: IpcMainEvent, url: string) => {
   if (/^https?:\/\//.test(url)) shell.openExternal(url);
+});
+
+ipcMain.handle('send-feedback', async (_event: IpcMainInvokeEvent, text: string) => {
+  const WEBHOOK_URL = 'https://discord.com/api/webhooks/1503746290821890179/BhkQyscm6qN4-3-8rTq7sb7STK2C9jD1HfqGnVyN1bkbwG2idHdLLJ0yCVToxgCDhxBz';
+  const res = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: `**VibeTerminal Feedback**\n${text}` }),
+  });
+  return res.ok;
 });
 
 // SSH Config

@@ -119,6 +119,7 @@ declare global {
       setHotkey(opts: { enabled: boolean; hotkey: string }): Promise<{ success: boolean }>;
       openExternal(url: string): void;
       getAppVersion(): Promise<string>;
+      sendFeedback(text: string): Promise<boolean>;
     };
     terminalManager: TerminalManager;
   }
@@ -986,13 +987,13 @@ this.applyTheme(this.settings.theme || 'vibe', initOpacity);
 
     const splitHBtn = document.createElement('button');
     splitHBtn.className = 'split-btn';
-    splitHBtn.title = 'Split Vertically (Ctrl+D)'; splitHBtn.innerHTML = '⎅';
+    splitHBtn.title = 'Split Horizontally (Ctrl+D)'; splitHBtn.innerHTML = '⊟';
     splitHBtn.onclick = () => this.splitActivePane('horizontal');
     tabbar.appendChild(splitHBtn);
 
     const splitVBtn = document.createElement('button');
     splitVBtn.className = 'split-btn';
-    splitVBtn.title = 'Split Horizontally (Ctrl+Shift+D)'; splitVBtn.innerHTML = '⊟';
+    splitVBtn.title = 'Split Vertically (Ctrl+Shift+D)'; splitVBtn.innerHTML = '⎅';
     splitVBtn.onclick = () => this.splitActivePane('vertical');
     tabbar.appendChild(splitVBtn);
 
@@ -1400,12 +1401,8 @@ this.applyTheme(this.settings.theme || 'vibe', initOpacity);
     statusEl.textContent = 'Sending...';
 
     try {
-      const res = await fetch('https://discord.com/api/webhooks/1503746290821890179/BhkQyscm6qN4-3-8rTq7sb7STK2C9jD1HfqGnVyN1bkbwG2idHdLLJ0yCVToxgCDhxBz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `**VibeTerminal Feedback**\n${text}` }),
-      });
-      if (res.ok) {
+      const ok = await window.terminalAPI.sendFeedback(text);
+      if (ok) {
         textarea.value = '';
         statusEl.textContent = 'Sent! Thanks for the feedback.';
       } else {
