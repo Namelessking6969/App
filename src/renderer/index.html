@@ -944,6 +944,10 @@
 
           <div class="settings-section-title">Feedback</div>
           <textarea class="settings-feedback-textarea" id="feedbackText" placeholder="Share your thoughts, report a bug, or suggest a feature..."></textarea>
+          <div class="settings-row" style="margin-top:8px">
+            <span class="settings-label">Your Name</span>
+            <input type="text" class="settings-input" id="settingsUserName" placeholder="Optional">
+          </div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
             <button class="settings-btn-save" id="feedbackSendBtn" onclick="terminalManager.sendFeedback()">Send Feedback</button>
             <span class="settings-feedback-status" id="feedbackStatus"></span>
@@ -956,10 +960,6 @@
           </div>
 
           <div class="settings-section-title" style="margin-top:20px">About</div>
-          <div class="settings-row">
-            <span class="settings-label">Your Name</span>
-            <input type="text" class="settings-input" id="settingsUserName" placeholder="Optional">
-          </div>
           <div class="about-app-name" style="margin-top:14px">VibeTerminal</div>
           <div class="about-version" id="aboutVersion"></div>
           <div class="about-description">A beautiful, feature-rich terminal emulator built for developers who care about their tools.</div>
